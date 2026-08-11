@@ -11,15 +11,7 @@ import { compileExpr } from "../math/exprParser.js";
 import { renderEquilibrium } from "./render.js";
 import { renderShotChart } from "./shotChart.js";
 import { createTokamakViewer } from "./tokamak3d.js";
-import {
-  buildPresetButtons,
-  setActive,
-  wireHowItWorks,
-  wireDropdown,
-  wireCollapsible,
-  wireKeyboardShortcuts,
-  buildFuelGauges,
-} from "./ui.js";
+import { buildPresetButtons, setActive, wireDropdown, wireKeyboardShortcuts, buildFuelGauges } from "./ui.js";
 import { wireThemeToggle } from "./theme.js";
 import {
   formatTime,
@@ -236,12 +228,6 @@ customShapeToggle.addEventListener("click", () => {
   }
 });
 
-// Small "how X works" collapsibles, one per sidebar section -- same [hidden]-toggling
-// pattern as the custom-shape panel above, generalized via wireCollapsible (src/app/ui.js).
-for (const name of ["reactor", "operating-point", "shape", "steady-state", "fuel", "energy-capture"]) {
-  wireCollapsible(document.getElementById(`${name}-help-toggle`), document.getElementById(`${name}-help-panel`));
-}
-
 customShapeInput.addEventListener("keydown", (e) => {
   if (e.key === "Enter") {
     e.preventDefault();
@@ -250,9 +236,8 @@ customShapeInput.addEventListener("keydown", (e) => {
 });
 customShapeInput.addEventListener("blur", applyCustomShape);
 
-wireHowItWorks(document.getElementById("how-toggle"), document.getElementById("how-panel"));
-wireDropdown(document.getElementById("variables-toggle"), document.getElementById("variables-panel"));
-wireDropdown(document.getElementById("faq-toggle"), document.getElementById("faq-panel"));
+wireDropdown(document.getElementById("variables-dropdown"));
+wireDropdown(document.getElementById("faq-dropdown"));
 
 const themeToggleInput = document.getElementById("theme-toggle-input");
 const themeToggleText = document.getElementById("theme-toggle-text");

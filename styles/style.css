@@ -199,9 +199,22 @@ main {
   font-family: inherit;
   font-size: 0.8rem;
   cursor: pointer;
+  list-style: none;
   text-decoration: underline;
   text-decoration-color: var(--line);
   text-underline-offset: 2px;
+}
+
+.ghost-toggle::-webkit-details-marker {
+  display: none;
+}
+
+summary.ghost-toggle::after {
+  content: " ▸";
+}
+
+details[open] > summary.ghost-toggle::after {
+  content: " ▾";
 }
 
 .ghost-toggle:hover {
@@ -212,6 +225,10 @@ main {
   color: var(--fg);
   font-weight: 600;
   text-decoration: none;
+}
+
+.collapsible-details {
+  margin-top: 0.5rem;
 }
 
 .custom-shape-panel {
@@ -808,24 +825,29 @@ canvas {
 }
 
 #how-toggle {
-  background: none;
-  border: none;
   font-family: inherit;
   font-size: 1rem;
   font-weight: 600;
   color: var(--fg);
   cursor: pointer;
-  padding: 0;
+  list-style: none;
+}
+
+#how-toggle::-webkit-details-marker {
+  display: none;
+}
+
+#how-toggle::before {
+  content: "▸ ";
+}
+
+.how-it-works[open] > #how-toggle::before {
+  content: "▾ ";
 }
 
 .how-panel {
-  display: none;
   margin-top: 1.25rem;
   max-width: 680px;
-}
-
-.how-panel.open {
-  display: block;
 }
 
 .how-panel h3 {
@@ -973,19 +995,23 @@ footer a {
   color: var(--fg);
   border-radius: 6px;
   cursor: pointer;
+  list-style: none;
   transition: border-color 0.12s ease;
+}
+
+.dropdown-toggle::-webkit-details-marker {
+  display: none;
 }
 
 .dropdown-toggle:hover {
   border-color: var(--line-hover);
 }
 
-.dropdown-toggle.active {
+.dropdown[open] > .dropdown-toggle {
   border-color: var(--accent);
 }
 
 .dropdown-panel {
-  display: none;
   position: absolute;
   top: calc(100% + 0.4rem);
   left: 0;
@@ -999,10 +1025,6 @@ footer a {
   border-radius: 8px;
   padding: 0.8rem 1rem;
   box-shadow: var(--shadow);
-}
-
-.dropdown-panel.open {
-  display: block;
 }
 
 .dropdown-panel dt {

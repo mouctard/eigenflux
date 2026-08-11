@@ -73,42 +73,23 @@ export function buildFuelGauges(container, fuel) {
   });
 }
 
-export function wireHowItWorks(toggleEl, panelEl) {
-  toggleEl.addEventListener("click", () => {
-    const open = panelEl.classList.toggle("open");
-    toggleEl.setAttribute("aria-expanded", String(open));
+// All of this page's disclosure widgets (the sidebar's "How X works" toggles, the Variables/
+// FAQ dropdowns, and the main "How this works" panel) are native <details>/<summary> elements
+// in the HTML -- click-to-toggle is therefore handled entirely by the browser, guaranteed to
+// work with mouse, touch, and keyboard on every device with zero custom JS involved (a prior
+// version of these used a hand-rolled click handler toggling a CSS class, which turned out to
+// be exactly the kind of thing that can silently misbehave on some mobile browsers).
+//
+// wireDropdown adds one small, non-essential enhancement on top of that native behavior:
+// closing a floating dropdown (Variables/FAQ) when the user clicks elsewhere or presses
+// Escape. If this listener never fires for some reason, the dropdown still opens and closes
+// perfectly fine via its own <summary> -- this only ever adds convenience, never removes it.
+export function wireDropdown(detailsEl) {
+  document.addEventListener("click", (e) => {
+    if (detailsEl.open && !detailsEl.contains(e.target)) detailsEl.open = false;
   });
-}
-
-// Small inline "how X works" toggle for sidebar preset groups: hidden by default, expands in
-// place (same [hidden]-toggling idea as the custom-shape panel, generalized for reuse) so each
-// section can carry a fuller explanation without the sidebar always paying for its height.
-export function wireCollapsible(toggleEl, panelEl) {
-  toggleEl.addEventListener("click", () => {
-    panelEl.hidden = !panelEl.hidden;
-    toggleEl.setAttribute("aria-expanded", String(!panelEl.hidden));
-  });
-}
-
-// Small popover dropdown (Variables / FAQ glossaries): toggles open on click, closes on an
-// outside click or Escape -- the extra behavior a floating menu needs that the inline
-// how-it-works panel above doesn't (that one never needs to auto-close).
-export function wireDropdown(toggleEl, panelEl) {
-  function close() {
-    panelEl.classList.remove("open");
-    toggleEl.classList.remove("active");
-    toggleEl.setAttribute("aria-expanded", "false");
-  }
-  toggleEl.addEventListener("click", (e) => {
-    e.stopPropagation();
-    const open = panelEl.classList.toggle("open");
-    toggleEl.classList.toggle("active", open);
-    toggleEl.setAttribute("aria-expanded", String(open));
-  });
-  panelEl.addEventListener("click", (e) => e.stopPropagation());
-  document.addEventListener("click", close);
-  window.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") close();
+  detailsEl.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") detailsEl.open = false;
   });
 }
 
