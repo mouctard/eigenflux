@@ -226,6 +226,10 @@ main {
   display: none;
 }
 
+.collapsible-panel {
+  margin-top: 0.5rem;
+}
+
 .custom-shape-label {
   display: flex;
   align-items: center;

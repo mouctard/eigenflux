@@ -154,9 +154,9 @@
           <option value="0.1">0.1×</option>
           <option value="0.25">0.25×</option>
           <option value="0.5">0.5×</option>
-          <option value="1">1×</option>
+          <option value="1" selected>1×</option>
           <option value="5">5×</option>
-          <option value="10" selected>10×</option>
+          <option value="10">10×</option>
           <option value="20">20×</option>
           <option value="50">50×</option>
           <option value="100">100×</option>
@@ -164,24 +164,29 @@
           <option value="10000">10000×</option>
         </select>
       </label>
-      <p class="reactor-caption">
-        Slow it down (0.1×–0.5×) to watch the ignition ramp itself — the field, current, and
-        heating powers rising together — instead of the fuel-burn clock. See "The shot" below.
-      </p>
-      <p class="reactor-caption">
-        <strong>Play</strong> energizes the confining magnetic field (real reference cost:
-        ITER's 51 GJ magnet system, charged once per shot) and starts accelerating/heating
-        the fuel ions — the field, current, and heating powers ramp up over about 1.4s (see
-        "The shot" below), visibly driving the new diagnostics dashboard up with them.
-        <strong>Reset</strong> de-energizes the field (ramping back down) and ends the shot —
-        fuel, clock, and the activation cost all return to zero, so the next Play pays it
-        again. <strong>Deplete</strong> burns fuel down following
-        <code>n(t) = n₀/(1 + n₀⟨σv⟩t)</code> — real depletion timescales are tens of seconds to
-        minutes at 1×, so try a higher speed to see it happen quickly. <strong>Sustained</strong>
-        refuels exactly as fast as fuel burns, holding density constant. The plasma visibly
-        fades as fuel depletes, and its pulsing glow tracks instantaneous fusion power — both
-        above and in the 3D view below, all tied to the same numbers.
-      </p>
+      <button id="reactor-help-toggle" type="button" class="ghost-toggle" aria-expanded="false">
+        ℹ How Play/Reset/Deplete/Sustained work ▾
+      </button>
+      <div id="reactor-help-panel" class="collapsible-panel" hidden>
+        <p class="reactor-caption">
+          Slow it down (0.1×–0.5×) to watch the ignition ramp itself — the field, current, and
+          heating powers rising together — instead of the fuel-burn clock. See "The shot" below.
+        </p>
+        <p class="reactor-caption">
+          <strong>Play</strong> energizes the confining magnetic field (real reference cost:
+          ITER's 51 GJ magnet system, charged once per shot) and starts accelerating/heating
+          the fuel ions — the field, current, and heating powers ramp up over about 1.4s (see
+          "The shot" below), visibly driving the new diagnostics dashboard up with them.
+          <strong>Reset</strong> de-energizes the field (ramping back down) and ends the shot —
+          fuel, clock, and the activation cost all return to zero, so the next Play pays it
+          again. <strong>Deplete</strong> burns fuel down following
+          <code>n(t) = n₀/(1 + n₀⟨σv⟩t)</code> — real depletion timescales are tens of seconds to
+          minutes at 1×, so try a higher speed to see it happen quickly. <strong>Sustained</strong>
+          refuels exactly as fast as fuel burns, holding density constant. The plasma visibly
+          fades as fuel depletes, and its pulsing glow tracks instantaneous fusion power — both
+          above and in the 3D view below, all tied to the same numbers.
+        </p>
+      </div>
     </div>
     <div class="preset-group">
       <h2>Operating point</h2>
@@ -190,7 +195,11 @@
         Real-unit toroidal field, plasma current, and auxiliary heating actuators — can't be
         derived from the solver's own arbitrary-unit profile amplitudes, so these are new
         real-unit inputs a preset selects, same epistemic tier as the burn model's existing
-        temperature/density operating points below.
+        temperature/density operating points below. <strong>JET-scale</strong> is a bigger,
+        higher-field, higher-current machine (real JET: up to 3.45T / 4.8MA); <strong>DIII-D-
+        scale</strong> is smaller and lower-field (real DIII-D: up to 2.2T / 2MA) but carries
+        real electron-cyclotron heating, which JET's real heating mix never had. See "Plasma
+        diagnostics" below for what that difference actually does to confinement.
       </p>
     </div>
     <div class="preset-group">
@@ -382,20 +391,6 @@
         </div>
       </div>
 
-      <div class="diagnostics-section">
-        <h3 class="diagnostics-heading">Energy projection</h3>
-        <div id="timeframe-presets" class="preset-list preset-list-row"></div>
-        <div class="burn-chart-wrap">
-          <canvas id="burn-chart" width="640" height="220"></canvas>
-          <p id="burn-chart-caption" class="burn-chart-caption"></p>
-        </div>
-        <p class="reactor-caption">
-          Projects the chart above from the closed-form <code>E(t)</code> directly — no need
-          to actually run the sim for hours. The dashed line is a real reference figure (not
-          computed from this page's arbitrary-unit solver state) for scale.
-        </p>
-      </div>
-
       <a id="story-link" href="story.html" target="_blank" rel="noopener" class="story-link">
         Follow a single reaction, particle by particle →
       </a>
@@ -563,9 +558,9 @@
       <strong>energizing the confining magnetic field</strong>, which has a real energy cost:
       the first Play of a "shot" charges a one-time <strong>activation energy</strong> (ITER's
       real 51 GJ magnet-system figure), tracked against cumulative electric output as a real
-      input/output balance on the energy-vs-time chart below (see "Where the energy goes" for
-      how the breakeven point on it is found), not just a comparison line. Pausing doesn't
-      re-charge it; only
+      input/output balance — the "net (out − activation)" stat tile above (see "Where the
+      energy goes" for how that conversion is computed), not just a comparison number. Pausing
+      doesn't re-charge it; only
       <strong>Reset</strong> — de-energizing the field and ending the shot — does, so the next
       Play pays it again. <strong>Deplete</strong> mode has no refueling —
       <code>dn/dt = -&lt;σv&gt;n²</code> — which has an exact closed-form solution
@@ -662,14 +657,13 @@ D-³He: D + ³He → ⁴He(3.6 MeV) + p(14.7 MeV)           Q = 18.3 MeV   (aneu
       closed-form-checked the way the solver or the reactivities are.
     </p>
     <p>
-      The energy-vs-time chart plots this electric-output curve (not raw fusion energy)
-      against a flat <strong>input</strong> line at whatever's actually been charged so far —
-      0 before the first Play, the magnet's activation energy afterward, per the "Live fuel
-      burn" section above. Since the capture conversion is a fixed multiplier (it doesn't
-      depend on <code>t</code>), the breakeven point where output crosses input is found from
-      the same closed-form inverse already used for the raw-energy version, just at a rescaled
-      target — the marked dot is exactly where cumulative electric output would pay back the
-      one-time activation cost, at the current fuel/capture/timeframe settings.
+      The "net (out − activation)" stat tile is this electric-output figure (not raw fusion
+      energy) minus whatever's actually been charged so far — 0 before the first Play, the
+      magnet's activation energy afterward, per the "Live fuel burn" section above. It starts
+      negative right after Play (the activation cost is paid up front) and climbs as electric
+      energy accumulates; the moment it crosses zero is the real breakeven point — cumulative
+      electric output has paid back the one-time activation cost — at whatever fuel/capture
+      settings are currently active.
     </p>
 
     <h3>Plasma diagnostics</h3>
@@ -684,6 +678,28 @@ D-³He: D + ³He → ⁴He(3.6 MeV) + p(14.7 MeV)           Q = 18.3 MeV   (aneu
       own profile amplitudes, so they're new inputs, same epistemic tier as the burn model's
       existing temperature/density operating points). From there, most of what's shown is
       genuinely computed, not hand-set:
+    </p>
+    <p>
+      <strong>JET-scale vs. DIII-D-scale</strong>, concretely: JET-scale reproduces real JET's
+      field/current envelope (up to 3.45T / 4.8MA — the largest conventional tokamak ever
+      built, and the only one besides TFTR to have actually run D-T fuel before ITER);
+      DIII-D-scale reproduces real DIII-D's (up to 2.2T / 2MA — a smaller, more agile research
+      device at General Atomics built for studying plasma shaping and real-time control, not
+      raw fusion output). That's not just a magnitude difference: JET-scale's higher
+      B<sub>t</sub> and I<sub>p</sub> feed directly into IPB98(y,2)'s
+      I<sub>p</sub><sup>0.93</sup>·B<sub>t</sub><sup>0.15</sup> dependence above, so at
+      otherwise-equal density and heating power it predicts meaningfully longer τ<sub>E</sub>
+      than DIII-D-scale — the same physical reason bigger, higher-current real devices confine
+      better, and why ITER (bigger and higher-current still) is expected to confine better yet.
+      The two presets also carry a real heating-technology difference, not just scale:
+      JET-scale has zero P<sub>ECH</sub> (real JET's heating mix was neutral beams and ion-
+      cyclotron only — it never had an electron-cyclotron system), while DIII-D-scale includes
+      real P<sub>ECH</sub> (DIII-D has a versatile, high-power ECH system, used in practice for
+      real-time control of tearing modes and current profiles). One thing the Operating point
+      preset does <em>not</em> set: plasma geometry (major/minor radius, elongation) — that's
+      the separate <strong>Shape</strong> preset above, so pairing JET-scale field/current with,
+      say, the spherical-tokamak shape is a genuine what-if combination, not a real device
+      replica.
     </p>
     <ul>
       <li><strong>l<sub>i</sub></strong> (internal inductance) = ⟨B<sub>θ</sub>²⟩<sub>volume</sub> / B<sub>θ</sub>²(edge),
@@ -819,9 +835,8 @@ D-³He: D + ³He → ⁴He(3.6 MeV) + p(14.7 MeV)           Q = 18.3 MeV   (aneu
       transient. The existing fusion-power/energy stat tiles above (from "Live fuel burn") keep
       representing that already-validated closed form directly, unramped — the ramp modulates
       the new real-unit diagnostics layered on top, not the underlying 0D burn physics. The
-      "Shot trace" chart renders in real time frame-by-frame (unlike the closed-form
-      energy-vs-time chart above it, which can sample any horizon instantly), so it's most
-      legible at lower speed multipliers.
+      "Shot trace" chart renders in real time frame-by-frame, one push per animation frame, so
+      it's most legible at lower speed multipliers rather than the fast-forward settings.
     </p>
 
     <h3>Not in this first pass</h3>

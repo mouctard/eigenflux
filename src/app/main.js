@@ -9,7 +9,6 @@ import { OPERATING_POINT_PRESETS } from "../fusion/operatingPoints.js";
 import { ITER_MAGNET_ENERGY_J } from "../fusion/activation.js";
 import { compileExpr } from "../math/exprParser.js";
 import { renderEquilibrium } from "./render.js";
-import { renderBurnChart } from "./burnChart.js";
 import { renderShotChart } from "./shotChart.js";
 import { createTokamakViewer } from "./tokamak3d.js";
 import { buildPresetButtons, setActive, wireHowItWorks, wireDropdown, wireKeyboardShortcuts, buildFuelGauges } from "./ui.js";
@@ -77,15 +76,6 @@ const CAPTURE_HOTKEYS = ["a", "f"];
 const OPERATING_POINT_HOTKEYS = ["o", "p"];
 const DEFAULT_CUSTOM_EXPR = "1 + 0.3*cos(3*theta)";
 
-// Chart horizon presets -- UI-only (not physics), so defined here rather than in src/fusion/.
-const TIMEFRAME_PRESETS = {
-  h6: { label: "6h", seconds: 6 * 3600 },
-  h12: { label: "12h", seconds: 12 * 3600 },
-  h24: { label: "24h", seconds: 24 * 3600 },
-};
-const timeframeKeys = Object.keys(TIMEFRAME_PRESETS);
-const TIMEFRAME_HOTKEYS = ["g", "h", "j"];
-
 // Shareable state via URL fragment, e.g. #shape=iterLike&profile=highBeta&fuel=dt&capture=blanketSteam
 // -- mirrors eigendrum's #p=circle. A custom shape adds &r=<encoded r(theta) expression>.
 function parseHash() {
@@ -94,7 +84,6 @@ function parseHash() {
   const profileKey = params.get("profile");
   const fuelKey = params.get("fuel");
   const captureKey = params.get("capture");
-  const timeframeKey = params.get("horizon");
   const operatingPointKey = params.get("op");
   const isCustomShape = shapeParam === "custom";
   return {
@@ -103,7 +92,6 @@ function parseHash() {
     profileKey: profileKeys.includes(profileKey) ? profileKey : profileKeys[0],
     fuelKey: fuelKeys.includes(fuelKey) ? fuelKey : fuelKeys[0],
     captureKey: captureKeys.includes(captureKey) ? captureKey : captureKeys[0],
-    timeframeKey: timeframeKeys.includes(timeframeKey) ? timeframeKey : timeframeKeys[0],
     operatingPointKey: operatingPointKeys.includes(operatingPointKey) ? operatingPointKey : operatingPointKeys[0],
   };
 }
@@ -114,7 +102,6 @@ function updateHash() {
     `profile=${state.profileKey}`,
     `fuel=${state.fuelKey}`,
     `capture=${state.captureKey}`,
-    `horizon=${state.timeframeKey}`,
     `op=${state.operatingPointKey}`,
   ];
   if (state.shapeKey === "custom") parts.push(`r=${encodeURIComponent(state.customExpr)}`);
@@ -196,19 +183,6 @@ const operatingPointButtons = buildPresetButtons(
   OPERATING_POINT_HOTKEYS
 );
 
-const timeframeButtons = buildPresetButtons(
-  document.getElementById("timeframe-presets"),
-  TIMEFRAME_PRESETS,
-  (key) => {
-    state.timeframeKey = key;
-    setActive(timeframeButtons, key);
-    updateHash();
-    renderBurnState(performance.now());
-  },
-  state.timeframeKey,
-  TIMEFRAME_HOTKEYS
-);
-
 // ---- Custom equation-based shape ------------------------------------------------------
 const customShapeToggle = document.getElementById("custom-shape-toggle");
 const customShapePanel = document.getElementById("custom-shape-panel");
@@ -254,6 +228,13 @@ customShapeToggle.addEventListener("click", () => {
   }
 });
 
+const reactorHelpToggle = document.getElementById("reactor-help-toggle");
+const reactorHelpPanel = document.getElementById("reactor-help-panel");
+reactorHelpToggle.addEventListener("click", () => {
+  reactorHelpPanel.hidden = !reactorHelpPanel.hidden;
+  reactorHelpToggle.setAttribute("aria-expanded", String(!reactorHelpPanel.hidden));
+});
+
 customShapeInput.addEventListener("keydown", (e) => {
   if (e.key === "Enter") {
     e.preventDefault();
@@ -287,7 +268,6 @@ wireKeyboardShortcuts({
   ...Object.fromEntries(PROFILE_HOTKEYS.map((k, i) => [k, () => profileButtons[profileKeys[i]].click()])),
   ...Object.fromEntries(FUEL_HOTKEYS.map((k, i) => [k, () => fuelButtons[fuelKeys[i]].click()])),
   ...Object.fromEntries(CAPTURE_HOTKEYS.map((k, i) => [k, () => captureButtons[captureKeys[i]].click()])),
-  ...Object.fromEntries(TIMEFRAME_HOTKEYS.map((k, i) => [k, () => timeframeButtons[timeframeKeys[i]].click()])),
   ...Object.fromEntries(
     OPERATING_POINT_HOTKEYS.map((k, i) => [k, () => operatingPointButtons[operatingPointKeys[i]].click()])
   ),
@@ -336,8 +316,6 @@ const statRateEl = document.getElementById("stat-rate");
 const statElectricPowerEl = document.getElementById("stat-electric-power");
 const statElectricEnergyEl = document.getElementById("stat-electric-energy");
 const statNetEnergyEl = document.getElementById("stat-net-energy");
-const burnChartCanvas = document.getElementById("burn-chart");
-const burnChartCaption = document.getElementById("burn-chart-caption");
 const burnToggleBtn = document.getElementById("burn-toggle");
 const burnResetBtn = document.getElementById("burn-reset");
 const burnSpeedSelect = document.getElementById("burn-speed");
@@ -774,17 +752,6 @@ function renderBurnState(now) {
   redraw();
   viewer3d.setGlow(state.glow);
   viewer3d.setFuelFraction(frac);
-
-  const horizonSeconds = TIMEFRAME_PRESETS[state.timeframeKey].seconds;
-  const liveT = burnPlaying ? burnElapsedSim : null;
-  const breakevenT = renderBurnChart(burnChartCanvas, burnModel, burnMode, horizonSeconds, capture, activationEnergySpent_J, liveT);
-  if (!magnetActivated) {
-    burnChartCaption.textContent = `Press Play to activate the magnet (${formatEnergy(ITER_MAGNET_ENERGY_J)}) and start the reaction.`;
-  } else if (breakevenT != null) {
-    burnChartCaption.textContent = `At this rate, electric output pays back the magnet's activation energy after ${formatTime(breakevenT)}.`;
-  } else {
-    burnChartCaption.textContent = `Electric output over ${TIMEFRAME_PRESETS[state.timeframeKey].label} doesn't pay back the magnet's activation energy at this rate.`;
-  }
 
   renderDiagnostics(now, burnElapsedSim, P, burnModel.chargedFrac);
 }

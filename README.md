@@ -15,19 +15,18 @@ fusion fuel (D-T / D-D / D-³He, real Bosch-Hale reactivities) and energy-captur
 (blanket + steam turbine / direct conversion). Play doesn't just start a clock -- it energizes
 the confining field, charging a real one-time activation-energy cost (ITER's 51 GJ magnet
 system) that's tracked against cumulative electric output as an actual input/output energy
-balance (net-energy stat tile + an energy-vs-time chart with a real input line and a
-breakeven marker, projectable out to a 6h/12h/24h horizon); Reset de-energizes the field and
-ends the shot, so the next Play pays the cost again. The plasma visibly fades as fuel
-depletes, in both the 2D plot and the 3D view, and the 3D magnet coils dim when the field is
-off. A "follow a single reaction" page walks through one D-T/D-D/D-³He reaction
-particle-by-particle. A small 3D section revolves the live 2D solve into a torus with
-schematic magnet coils, orbit-controllable and pulsing with fusion power alongside the 2D
-view while the reactor plays. Shareable via URL
-(`#shape=...&profile=...&fuel=...&capture=...&horizon=...&op=...`), keyboard shortcuts (`1`-`4`
-for shape, `Q`/`W`/`E`/`R` for profile, `Z`/`X`/`C` for fuel, `A`/`F` for capture method,
-`G`/`H`/`J` for chart horizon, `O`/`P` for operating point), mesh-visibility toggle. See its
-"How this works" panel for the physics, the deliberate simplifications (fixed boundary, no
-eigensolver needed), and validation against the closed-form Solov'ev equilibrium.
+balance (the "net (out − activation)" stat tile, which starts negative and crosses zero at the
+real breakeven point); Reset de-energizes the field and ends the shot, so the next Play pays
+the cost again. The plasma visibly fades as fuel depletes, in both the 2D plot and the 3D view,
+and the 3D magnet coils dim when the field is off. A "follow a single reaction" page walks
+through one D-T/D-D/D-³He reaction particle-by-particle. A small 3D section revolves the live
+2D solve into a torus with schematic magnet coils, orbit-controllable and pulsing with fusion
+power alongside the 2D view while the reactor plays. Shareable via URL
+(`#shape=...&profile=...&fuel=...&capture=...&op=...`), keyboard shortcuts (`1`-`4` for shape,
+`Q`/`W`/`E`/`R` for profile, `Z`/`X`/`C` for fuel, `A`/`F` for capture method, `O`/`P` for
+operating point), mesh-visibility toggle. See its "How this works" panel for the physics, the
+deliberate simplifications (fixed boundary, no eigensolver needed), and validation against the
+closed-form Solov'ev equilibrium.
 
 A JET/DIII-D-style operational diagnostics dashboard, framed as an operator's control room
 (ignite today's plasma, then watch the same numbers a real control room would), sits alongside
@@ -40,7 +39,11 @@ Martin08 H-mode threshold P<sub>LH</sub> caption); a "Divertor" panel (λ<sub>q<
 f<sub>det</sub>, q<sub>i</sub>, T<sub>s</sub>); and a real-time scrolling "Shot trace" strip
 chart. A new **Operating point** preset (`src/fusion/operatingPoints.js`, JET-scale /
 DIII-D-scale) supplies the real-unit B<sub>t</sub>/I<sub>p</sub>/heating inputs the
-arbitrary-unit solver can't provide on its own. Most of the dashboard is genuinely derived, not
+arbitrary-unit solver can't provide on its own -- JET-scale reproduces real JET's field/current
+envelope (the largest conventional tokamak ever built), DIII-D-scale reproduces real DIII-D's
+(smaller, more agile, with a real ECH system JET's own heating mix never had); see the how-it-
+works panel's "Plasma diagnostics" section for how that concretely changes the live IPB98(y,2)
+confinement prediction. Most of the dashboard is genuinely derived, not
 illustrative: internal inductance l<sub>i</sub> (a scale-invariant ratio of ⟨B<sub>θ</sub>²⟩),
 thermal energy W<sub>th</sub> and β<sub>N</sub> (from the operating point's real n<sub>e</sub>/T
 and the solved volume), τ<sub>E</sub>/H<sub>98</sub> (IPB98(y,2) scaling vs. the real
