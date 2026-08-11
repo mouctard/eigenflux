@@ -13,11 +13,16 @@ current), via Picard-iterated P1 finite elements on a structured O-grid mesh, in
 Worker. On top of the solved equilibrium, a live 0D burn simulation runs across a choice of
 fusion fuel (D-T / D-D / D-³He, real Bosch-Hale reactivities) and energy-capture technology
 (blanket + steam turbine / direct conversion), showing fusion power down to net electric
-power. Shareable via URL (`#shape=...&profile=...&fuel=...&capture=...`), keyboard shortcuts
-(`1`-`4` for shape, `Q`/`W`/`E`/`R` for profile, `Z`/`X`/`C` for fuel, `A`/`F` for capture
-method), mesh-visibility toggle. See its "How this works" panel for the physics, the
-deliberate simplifications (fixed boundary, no eigensolver needed), and validation against
-the closed-form Solov'ev equilibrium.
+power, projected out to a 6h/12h/24h horizon on an energy-vs-time chart against a real
+reference figure (ITER's 51 GJ magnet system). A "follow a single reaction" page walks
+through one D-T/D-D/D-³He reaction particle-by-particle. A small 3D section revolves the
+live 2D solve into a torus with schematic magnet coils, orbit-controllable and pulsing with
+fusion power alongside the 2D view while the reactor plays. Shareable via URL
+(`#shape=...&profile=...&fuel=...&capture=...&horizon=...`), keyboard shortcuts (`1`-`4` for
+shape, `Q`/`W`/`E`/`R` for profile, `Z`/`X`/`C` for fuel, `A`/`F` for capture method, `G`/`H`/`J`
+for chart horizon), mesh-visibility toggle. See its "How this works" panel for the physics,
+the deliberate simplifications (fixed boundary, no eigensolver needed), and validation
+against the closed-form Solov'ev equilibrium.
 
 ## Stellarator flux-surface viewer (`stellarator.html`)
 

@@ -8,14 +8,19 @@ import { FUSION_OPERATING_POINTS } from "../fusion/presets.js";
 import { compileExpr } from "../math/exprParser.js";
 import { renderEquilibrium } from "./render.js";
 import { renderBurnChart } from "./burnChart.js";
+import { createTokamakViewer } from "./tokamak3d.js";
 import { buildPresetButtons, setActive, wireHowItWorks, wireKeyboardShortcuts, buildFuelGauges } from "./ui.js";
 import { formatTime, formatPower, formatEnergy, formatRate, formatDensity } from "./format.js";
 import { paintLegendBar } from "./legend.js";
+
+const SOLVE_NRHO = 26;
+const SOLVE_NTHETA = 72;
 
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 const statusEl = document.getElementById("status");
 const storyLink = document.getElementById("story-link");
+const viewer3d = createTokamakViewer(document.getElementById("viewer3d"));
 
 paintLegendBar(document.getElementById("pressure-legend"));
 const meshToggle = document.getElementById("mesh-toggle");
@@ -367,6 +372,7 @@ function renderBurnState(now) {
   const pulseHz = 0.3 + 1.2 * powerLevel;
   state.glow = burnPlaying ? { powerLevel, pulsePhase: (now / 1000) * pulseHz * 2 * Math.PI } : null;
   redraw();
+  viewer3d.setGlow(state.glow);
 
   const horizonSeconds = TIMEFRAME_PRESETS[state.timeframeKey].seconds;
   const liveT = burnPlaying ? burnElapsedSim : null;
@@ -395,6 +401,7 @@ worker.onmessage = (e) => {
   lastVolume_m3 = computeVolume(mesh);
   lastOp = FUSION_OPERATING_POINTS[data.profileKey];
   rebuildBurnModel();
+  viewer3d.setEquilibrium(mesh, SOLVE_NRHO, SOLVE_NTHETA);
 
   const shapeLabel = data.shapeKey === "custom" ? "Custom" : SHAPE_PRESETS[data.shapeKey].label;
   statusEl.textContent =
@@ -419,8 +426,8 @@ function solve() {
   worker.postMessage({
     shapeKey: state.shapeKey,
     profileKey: state.profileKey,
-    nRho: 26,
-    nTheta: 72,
+    nRho: SOLVE_NRHO,
+    nTheta: SOLVE_NTHETA,
     customExpr: state.shapeKey === "custom" ? state.customExpr : undefined,
   });
 }

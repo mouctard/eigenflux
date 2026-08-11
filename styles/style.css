@@ -444,6 +444,22 @@ canvas {
   border-color: var(--fg);
 }
 
+.tokamak3d-section {
+  margin-top: 2rem;
+}
+
+.tokamak3d-heading {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0 0 0.6rem;
+}
+
+.tokamak3d-hint {
+  font-weight: 400;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
 .legend {
   margin-top: 0.8rem;
 }
