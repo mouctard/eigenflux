@@ -60,9 +60,13 @@
       <p class="reactor-caption">
         Same 0D burn model as the <a href="index.html">tokamak page</a>, driven by this
         configuration's actual solved-equilibrium plasma volume (see "How this works" for
-        how that's computed). <strong>Deplete</strong> burns fuel down following
+        how that's computed). <strong>Play</strong> energizes the confining field (real
+        reference cost: ITER's 51 GJ magnet system, charged once per shot) and starts the
+        reaction; <strong>Reset</strong> de-energizes it and ends the shot, so the next Play
+        pays the cost again. <strong>Deplete</strong> burns fuel down following
         <code>n(t) = n₀/(1 + n₀⟨σv⟩t)</code>; <strong>Sustained</strong> holds density
-        constant. The core surface's pulsing glow tracks instantaneous fusion power.
+        constant. The flux surfaces visibly fade as fuel depletes, and the core surface's
+        pulsing glow tracks instantaneous fusion power.
       </p>
     </div>
     <div class="preset-group">
@@ -111,6 +115,10 @@
         <div class="stat-tile stat-tile-electric">
           <div class="stat-value" id="stat-electric-energy">0 MJ</div>
           <div class="stat-label">electric energy</div>
+        </div>
+        <div class="stat-tile stat-tile-net">
+          <div class="stat-value" id="stat-net-energy">+0 kJ</div>
+          <div class="stat-label">net (out − activation)</div>
         </div>
       </div>
 
@@ -189,6 +197,15 @@
       conditions — W7-X, HSX, and NCSX are research devices studying confinement physics, not
       power reactors, so pairing their real geometry with reactor-scale conditions is a
       what-if extrapolation, the same one the tokamak page already makes.
+    </p>
+    <p>
+      <strong>Play</strong> also means the same thing here as on the tokamak page: it energizes
+      the confining field, charging a one-time activation-energy cost (ITER's real 51 GJ
+      magnet-system figure) against cumulative electric output on the energy-vs-time chart —
+      not just a comparison line. <strong>Reset</strong> de-energizes the field and ends the
+      shot. The flux surfaces fade toward the background as fuel depletes, the same
+      presentation cue (tied to <code>n(t)/n₀</code>, not a re-solved equilibrium) as the
+      tokamak page's 2D and 3D views.
     </p>
 
     <p class="dependencies">Uses a vendored, MIT-licensed copy of three.js for rendering — the only dependency in this project. Nothing else is fetched from anywhere at runtime.</p>

@@ -41,8 +41,10 @@ export function createTokamakViewer(container) {
   scene.add(coreLight);
 
   let surfaceMeshes = [];
+  let surfaceBaseOpacity = [];
   let coilGroup = null;
   let cabinetLights = [];
+  let magnetMaterials = []; // coils + solenoid + PF rings, toggled by setMagnetActive
 
   function clearGroup(objs) {
     for (const m of objs) {
@@ -135,7 +137,15 @@ export function createTokamakViewer(container) {
       coilZ1 = maxZ + margin;
     const coilMidR = (coilR0 + coilR1) / 2;
 
-    const coilMaterial = new THREE.MeshStandardMaterial({ color: 0x8a8f98, metalness: 0.6, roughness: 0.4 });
+    magnetMaterials = [];
+    const coilMaterial = new THREE.MeshStandardMaterial({
+      color: 0x8a8f98,
+      emissive: 0x3b82f6,
+      emissiveIntensity: 0,
+      metalness: 0.6,
+      roughness: 0.4,
+    });
+    magnetMaterials.push(coilMaterial);
 
     // TF coils: a D-ish outline in the (R,Z) plane, tube-extruded, repeated around zeta.
     const outline = [
@@ -157,14 +167,30 @@ export function createTokamakViewer(container) {
 
     // Central solenoid: a slim vertical cylinder near the torus axis.
     const solenoidR = Math.max(0.05, minR - margin * 1.6);
+    const solenoidMaterial = new THREE.MeshStandardMaterial({
+      color: 0x556072,
+      emissive: 0x3b82f6,
+      emissiveIntensity: 0,
+      metalness: 0.5,
+      roughness: 0.5,
+      side: THREE.DoubleSide,
+    });
+    magnetMaterials.push(solenoidMaterial);
     const solenoid = new THREE.Mesh(
       new THREE.CylinderGeometry(solenoidR * 0.25, solenoidR * 0.25, (coilZ1 - coilZ0) * 1.1, 24, 1, true),
-      new THREE.MeshStandardMaterial({ color: 0x556072, metalness: 0.5, roughness: 0.5, side: THREE.DoubleSide })
+      solenoidMaterial
     );
     group.add(solenoid);
 
     // Poloidal-field rings, flattened tori above and below the plasma.
-    const pfMaterial = new THREE.MeshStandardMaterial({ color: 0x6b7280, metalness: 0.55, roughness: 0.45 });
+    const pfMaterial = new THREE.MeshStandardMaterial({
+      color: 0x6b7280,
+      emissive: 0x3b82f6,
+      emissiveIntensity: 0,
+      metalness: 0.55,
+      roughness: 0.45,
+    });
+    magnetMaterials.push(pfMaterial);
     for (const zFrac of [0.85, -0.85]) {
       const ring = new THREE.Mesh(
         new THREE.TorusGeometry(coilMidR, (maxR - minR) * 0.03, 12, 48),
@@ -199,6 +225,7 @@ export function createTokamakViewer(container) {
   function setEquilibrium(mesh, nRho, nTheta) {
     clearGroup(surfaceMeshes);
     surfaceMeshes = [];
+    surfaceBaseOpacity = [];
     disposeStructure(coilGroup);
     coilGroup = null;
 
@@ -235,6 +262,7 @@ export function createTokamakViewer(container) {
       surfaceMesh.renderOrder = SURFACE_FRACS.length - i;
       scene.add(surfaceMesh);
       surfaceMeshes.push(surfaceMesh);
+      surfaceBaseOpacity.push(isOutermost ? 0.18 : 0.42);
     });
 
     coilGroup = buildStructure({ minR, maxR, minZ, maxZ });
@@ -264,6 +292,25 @@ export function createTokamakViewer(container) {
     }
   }
 
+  // Fades the flux surfaces toward the background as fuel depletes (frac = n(t)/n0), floored
+  // so the shape stays visible rather than vanishing outright -- a presentation cue for the
+  // burn model's fuel state, see the matching comment in src/app/render.js.
+  function setFuelFraction(frac) {
+    const f = Math.max(0, Math.min(1, frac));
+    surfaceMeshes.forEach((mesh, i) => {
+      mesh.material.opacity = surfaceBaseOpacity[i] * (0.12 + 0.88 * f);
+    });
+  }
+
+  // The coils' emissive tint follows whether the confining field is currently energized
+  // (tied to burnPlaying, not a literal magnet-ramp-time simulation -- see the how-it-works
+  // panel).
+  function setMagnetActive(active) {
+    for (const mat of magnetMaterials) {
+      mat.emissiveIntensity = active ? 0.55 : 0;
+    }
+  }
+
   function onResize() {
     const w = container.clientWidth,
       h = container.clientHeight;
@@ -281,5 +328,5 @@ export function createTokamakViewer(container) {
   }
   animate();
 
-  return { setEquilibrium, setGlow, onResize };
+  return { setEquilibrium, setGlow, setFuelFraction, setMagnetActive, onResize };
 }

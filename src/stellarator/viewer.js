@@ -27,6 +27,7 @@ export function createViewer(container) {
   scene.add(coreLight);
 
   let surfaceMeshes = [];
+  let surfaceBaseOpacity = [];
 
   function clearSurfaces() {
     for (const m of surfaceMeshes) {
@@ -68,6 +69,7 @@ export function createViewer(container) {
 
   function setSurfaces(data) {
     clearSurfaces();
+    surfaceBaseOpacity = [];
     const { nTheta, nZeta, surfaces } = data;
 
     surfaces.forEach((surface, i) => {
@@ -93,6 +95,7 @@ export function createViewer(container) {
       mesh.renderOrder = surfaces.length - i; // draw outer surfaces first (painter's algorithm)
       scene.add(mesh);
       surfaceMeshes.push(mesh);
+      surfaceBaseOpacity.push(isOutermost ? 0.16 : 0.42);
       if (isInnermost) innermostMaterial = material;
     });
 
@@ -128,6 +131,15 @@ export function createViewer(container) {
     if (innermostMaterial) innermostMaterial.emissiveIntensity = 0.1 + level * pulse * 0.9;
   }
 
+  // Fades the flux surfaces toward the background as fuel depletes -- same presentation cue
+  // as the tokamak page's 2D/3D views, see src/app/render.js's comment.
+  function setFuelFraction(frac) {
+    const f = Math.max(0, Math.min(1, frac));
+    surfaceMeshes.forEach((mesh, i) => {
+      mesh.material.opacity = surfaceBaseOpacity[i] * (0.12 + 0.88 * f);
+    });
+  }
+
   function onResize() {
     const w = container.clientWidth, h = container.clientHeight;
     if (w === 0 || h === 0) return;
@@ -144,5 +156,5 @@ export function createViewer(container) {
   }
   animate();
 
-  return { setSurfaces, setGlow, onResize };
+  return { setSurfaces, setGlow, setFuelFraction, onResize };
 }

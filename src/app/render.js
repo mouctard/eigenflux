@@ -23,7 +23,7 @@ function fitTransform(mesh, width, height, marginFrac = 0.08) {
 }
 
 export function renderEquilibrium(ctx, canvas, mesh, psi, pressureField, psiAxis, opts = {}) {
-  const { showMesh = false, glow = null } = opts;
+  const { showMesh = false, glow = null, fuelFrac = 1 } = opts;
   const { width, height } = canvas;
   const toPx = fitTransform(mesh, width, height);
 
@@ -51,6 +51,17 @@ export function renderEquilibrium(ctx, canvas, mesh, psi, pressureField, psiAxis
       ctx.lineWidth = 0.5;
       ctx.stroke();
     }
+  }
+
+  // Fuel-depletion cue: wash the pressure fill toward the page background as fuel runs out,
+  // so a spent plasma visibly fades rather than looking identical to a full one. This is a
+  // presentation cue tied to the burn model's n(t)/n0, not a re-solved equilibrium -- the
+  // Grad-Shafranov shape itself stays the one already-solved static solve (see "Live fuel
+  // burn" in the how-it-works panel). Drawn before contours/boundary so those stay crisp.
+  const frac = Math.max(0, Math.min(1, fuelFrac));
+  if (frac < 1) {
+    ctx.fillStyle = `rgba(250, 250, 248, ${((1 - frac) * 0.88).toFixed(3)})`;
+    ctx.fillRect(0, 0, width, height);
   }
 
   let axisIdx = 0;

@@ -74,11 +74,16 @@
         </select>
       </label>
       <p class="reactor-caption">
-        <strong>Deplete</strong> burns fuel down following <code>n(t) = n₀/(1 + n₀⟨σv⟩t)</code> —
-        real depletion timescales are tens of seconds to minutes at 1×, so try a higher
+        <strong>Play</strong> energizes the confining magnetic field (real reference cost:
+        ITER's 51 GJ magnet system, charged once per shot) and starts accelerating/heating
+        the fuel ions. <strong>Reset</strong> de-energizes the field and ends the shot — fuel,
+        clock, and the activation cost all return to zero, so the next Play pays it again.
+        <strong>Deplete</strong> burns fuel down following <code>n(t) = n₀/(1 + n₀⟨σv⟩t)</code>
+        — real depletion timescales are tens of seconds to minutes at 1×, so try a higher
         speed to see it happen quickly. <strong>Sustained</strong> refuels exactly as fast
-        as fuel burns, holding density constant. The core's pulsing glow isn't decorative —
-        its brightness and pulse rate track the instantaneous fusion power level in real time.
+        as fuel burns, holding density constant. The plasma visibly fades as fuel depletes,
+        and its pulsing glow tracks instantaneous fusion power — both above and in the 3D
+        view below, all tied to the same numbers.
       </p>
     </div>
     <div class="preset-group">
@@ -132,6 +137,10 @@
         <div class="stat-tile stat-tile-electric">
           <div class="stat-value" id="stat-electric-energy">0 MJ</div>
           <div class="stat-label">electric energy</div>
+        </div>
+        <div class="stat-tile stat-tile-net">
+          <div class="stat-value" id="stat-net-energy">+0 kJ</div>
+          <div class="stat-label">net (out − activation)</div>
         </div>
       </div>
 
@@ -270,7 +279,15 @@
       equilibrium: the standard <strong>0D power-balance model</strong> used for reactor
       scoping (the same category of calculation behind the Lawson criterion), not a scripted
       animation. Plasma volume is computed from the actual solved mesh (Pappus's theorem per
-      triangle, treating R,Z as meters). <strong>Deplete</strong> mode has no refueling —
+      triangle, treating R,Z as meters). Play doesn't just start a clock — it represents
+      <strong>energizing the confining magnetic field</strong>, which has a real energy cost:
+      the first Play of a "shot" charges a one-time <strong>activation energy</strong> (ITER's
+      real 51 GJ magnet-system figure), tracked against cumulative electric output as a real
+      input/output balance on the energy-vs-time chart below (see "Where the energy goes" for
+      how the breakeven point on it is found), not just a comparison line. Pausing doesn't
+      re-charge it; only
+      <strong>Reset</strong> — de-energizing the field and ending the shot — does, so the next
+      Play pays it again. <strong>Deplete</strong> mode has no refueling —
       <code>dn/dt = -&lt;σv&gt;n²</code> — which has an exact closed-form solution
       <code>n(t) = n₀/(1+n₀&lt;σv&gt;t)</code>, so power and cumulative energy are evaluated
       directly from elapsed time with no per-frame integration to accumulate error.
@@ -281,14 +298,27 @@
       few seconds).
     </p>
     <p>
+      The plasma's fill fades toward the background as fuel depletes (both here and in the 3D
+      view below) — a direct visual read on <code>n(t)/n₀</code>, so a spent plasma no longer
+      looks identical to a fresh one. This is a presentation cue layered on top of the
+      already-solved static equilibrium, <strong>not</strong> a re-solved Grad-Shafranov shape
+      — the flux-surface contours and boundary stay exactly as solved; only the pressure fill's
+      opacity changes. The 3D magnet coils likewise dim when the field is off (Reset, or
+      before the first Play) and take on a blue energized tint while Play is active — tied to
+      the same <code>burnPlaying</code> state as the activation-energy charge above, not a
+      simulated magnet ramp time.
+    </p>
+    <p>
       Temperature and initial fuel density are illustrative, reactor-ballpark operating
       points assigned per steady-state preset (roughly 6–15 keV, ~0.6–1.1×10²⁰ m⁻³ — in
       ITER's target range), <strong>not</strong> derived from the solver's arbitrary-unit
       pressure profile amplitudes, and <strong>the same for every fuel</strong> (see below);
       the equilibrium shape itself stays the already-solved static one rather than being
-      re-solved as fuel depletes. "Energy produced" is a running tally of fusion output, not
-      a Q-factor netted against input heating power or confinement losses — that would need
-      transport/confinement-time modeling this page doesn't attempt.
+      re-solved as fuel depletes. The net-energy figure nets electric output against the
+      one-time magnet-activation cost only — it's still <strong>not</strong> a true Q-factor,
+      since continuous heating power and energy-confinement-time losses (which a real reactor
+      also has to pay for, continuously, not just once at startup) aren't modeled here; that
+      would need transport/confinement-time physics this page doesn't attempt.
     </p>
 
     <h3>Choosing a fuel</h3>
@@ -350,6 +380,16 @@ D-³He: D + ³He → ⁴He(3.6 MeV) + p(14.7 MeV)           Q = 18.3 MeV   (aneu
       ballparks for conceptual designs, the same epistemic status as the temperature/density
       operating points above — not a specific engineering design, and not independently
       closed-form-checked the way the solver or the reactivities are.
+    </p>
+    <p>
+      The energy-vs-time chart plots this electric-output curve (not raw fusion energy)
+      against a flat <strong>input</strong> line at whatever's actually been charged so far —
+      0 before the first Play, the magnet's activation energy afterward, per the "Live fuel
+      burn" section above. Since the capture conversion is a fixed multiplier (it doesn't
+      depend on <code>t</code>), the breakeven point where output crosses input is found from
+      the same closed-form inverse already used for the raw-energy version, just at a rescaled
+      target — the marked dot is exactly where cumulative electric output would pay back the
+      one-time activation cost, at the current fuel/capture/timeframe settings.
     </p>
 
     <h3>Not in this first pass</h3>

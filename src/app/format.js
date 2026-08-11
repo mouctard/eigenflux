@@ -29,6 +29,14 @@ export function formatEnergy(J) {
   return (J / 1e12).toFixed(2) + " TJ";
 }
 
+// For a net (output minus input) balance, which starts negative right after the one-time
+// activation cost is paid -- formatEnergy's tiering assumes J >= 0, so this handles sign
+// separately rather than passing a negative straight through.
+export function formatSignedEnergy(J) {
+  const sign = J < 0 ? "−" : "+";
+  return sign + formatEnergy(Math.abs(J));
+}
+
 const SUPERSCRIPT = "⁰¹²³⁴⁵⁶⁷⁸⁹⁻";
 
 function formatSci(x, unit) {

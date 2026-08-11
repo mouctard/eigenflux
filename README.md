@@ -12,12 +12,17 @@ Solves the fixed-boundary Grad–Shafranov equation live, for a chosen plasma bo
 current), via Picard-iterated P1 finite elements on a structured O-grid mesh, in a Web
 Worker. On top of the solved equilibrium, a live 0D burn simulation runs across a choice of
 fusion fuel (D-T / D-D / D-³He, real Bosch-Hale reactivities) and energy-capture technology
-(blanket + steam turbine / direct conversion), showing fusion power down to net electric
-power, projected out to a 6h/12h/24h horizon on an energy-vs-time chart against a real
-reference figure (ITER's 51 GJ magnet system). A "follow a single reaction" page walks
-through one D-T/D-D/D-³He reaction particle-by-particle. A small 3D section revolves the
-live 2D solve into a torus with schematic magnet coils, orbit-controllable and pulsing with
-fusion power alongside the 2D view while the reactor plays. Shareable via URL
+(blanket + steam turbine / direct conversion). Play doesn't just start a clock -- it energizes
+the confining field, charging a real one-time activation-energy cost (ITER's 51 GJ magnet
+system) that's tracked against cumulative electric output as an actual input/output energy
+balance (net-energy stat tile + an energy-vs-time chart with a real input line and a
+breakeven marker, projectable out to a 6h/12h/24h horizon); Reset de-energizes the field and
+ends the shot, so the next Play pays the cost again. The plasma visibly fades as fuel
+depletes, in both the 2D plot and the 3D view, and the 3D magnet coils dim when the field is
+off. A "follow a single reaction" page walks through one D-T/D-D/D-³He reaction
+particle-by-particle. A small 3D section revolves the live 2D solve into a torus with
+schematic magnet coils, orbit-controllable and pulsing with fusion power alongside the 2D
+view while the reactor plays. Shareable via URL
 (`#shape=...&profile=...&fuel=...&capture=...&horizon=...`), keyboard shortcuts (`1`-`4` for
 shape, `Q`/`W`/`E`/`R` for profile, `Z`/`X`/`C` for fuel, `A`/`F` for capture method, `G`/`H`/`J`
 for chart horizon), mesh-visibility toggle. See its "How this works" panel for the physics,

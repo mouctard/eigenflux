@@ -394,6 +394,11 @@ canvas {
   background: #f3fbfc;
 }
 
+.stat-tile-net {
+  border-color: #f0d9a8;
+  background: #fdfaf3;
+}
+
 .stat-value {
   font-size: 1.15rem;
   font-weight: 700;

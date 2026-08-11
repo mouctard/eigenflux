@@ -6,9 +6,10 @@ import { computeSurfaceVolume } from "./volume.js";
 import { FUEL_PRESETS } from "../fusion/fuels.js";
 import { CAPTURE_PRESETS, convertToElectric } from "../fusion/capture.js";
 import { createBurnModel } from "../fusion/burn.js";
+import { ITER_MAGNET_ENERGY_J } from "../fusion/activation.js";
 import { renderBurnChart } from "../app/burnChart.js";
 import { buildPresetButtons, setActive, wireHowItWorks, wireKeyboardShortcuts, buildFuelGauges } from "../app/ui.js";
-import { formatTime, formatPower, formatEnergy, formatRate, formatDensity } from "../app/format.js";
+import { formatTime, formatPower, formatEnergy, formatSignedEnergy, formatRate, formatDensity } from "../app/format.js";
 import { paintLegendBar } from "../app/legend.js";
 
 const container = document.getElementById("viewer");
@@ -145,6 +146,7 @@ const statEnergyEl = document.getElementById("stat-energy");
 const statRateEl = document.getElementById("stat-rate");
 const statElectricPowerEl = document.getElementById("stat-electric-power");
 const statElectricEnergyEl = document.getElementById("stat-electric-energy");
+const statNetEnergyEl = document.getElementById("stat-net-energy");
 const burnChartCanvas = document.getElementById("burn-chart");
 const burnChartCaption = document.getElementById("burn-chart-caption");
 const burnToggleBtn = document.getElementById("burn-toggle");
@@ -165,13 +167,18 @@ let rafHandle = null;
 let lastRedrawReal = 0;
 const REDRAW_INTERVAL_MS = 66;
 
+// Whether the confining field has been energized this "shot" -- see src/app/main.js's
+// matching comment for the framing (same semantics on both pages).
+let magnetActivated = false;
+let activationEnergySpent_J = 0;
+
 const burnModeButtons = buildPresetButtons(
   document.getElementById("burn-mode-presets"),
   BURN_MODES,
   (key) => {
     burnMode = key;
     setActive(burnModeButtons, key);
-    resetBurn();
+    resetShot();
   },
   burnMode,
   BURN_MODE_HOTKEYS
@@ -184,24 +191,33 @@ burnSpeedSelect.addEventListener("change", () => {
   burnSpeed = Number(burnSpeedSelect.value);
 });
 burnToggleBtn.addEventListener("click", () => setBurnPlaying(!burnPlaying));
-burnResetBtn.addEventListener("click", () => resetBurn());
+burnResetBtn.addEventListener("click", () => resetShot());
 
 function setBurnPlaying(playing) {
   burnPlaying = playing;
   burnToggleBtn.textContent = burnPlaying ? "⏸ Pause" : "▶ Play";
   if (burnPlaying) {
+    if (!magnetActivated) {
+      magnetActivated = true;
+      activationEnergySpent_J = ITER_MAGNET_ENERGY_J;
+    }
     burnLastFrameReal = performance.now();
     rafHandle = requestAnimationFrame(burnTick);
   } else if (rafHandle) {
     cancelAnimationFrame(rafHandle);
     rafHandle = null;
   }
+  renderBurnState(performance.now());
 }
 
-function resetBurn() {
+// Ends the current "shot": de-energizes the field, refills fuel, zeros the clock and the
+// activation cost -- the next Play starts fresh and pays the activation cost again.
+function resetShot() {
   burnElapsedSim = 0;
   burnLastFrameReal = performance.now();
-  renderBurnState(performance.now());
+  magnetActivated = false;
+  activationEnergySpent_J = 0;
+  setBurnPlaying(false);
 }
 
 function burnTick(now) {
@@ -229,9 +245,7 @@ function rebuildBurnModel() {
     volume_m3: lastVolume_m3,
   });
   gaugeEls = buildFuelGauges(document.getElementById("fuel-gauges"), fuel);
-  setBurnPlaying(false);
-  burnElapsedSim = 0;
-  renderBurnState(performance.now());
+  resetShot();
 }
 
 function renderBurnState(now) {
@@ -256,19 +270,24 @@ function renderBurnState(now) {
   const { P_electric, E_electric } = convertToElectric(P, E, burnModel, capture);
   statElectricPowerEl.textContent = formatPower(P_electric);
   statElectricEnergyEl.textContent = formatEnergy(E_electric);
+  statNetEnergyEl.textContent = formatSignedEnergy(E_electric - activationEnergySpent_J);
 
   const powerLevel = burnModel.P0 > 0 ? P / burnModel.P0 : 0;
   const pulseHz = 0.3 + 1.2 * powerLevel;
   const glow = burnPlaying ? { powerLevel, pulsePhase: (now / 1000) * pulseHz * 2 * Math.PI } : null;
   viewer.setGlow(glow);
+  viewer.setFuelFraction(frac);
 
   const horizonSeconds = TIMEFRAME_PRESETS[state.timeframeKey].seconds;
   const liveT = burnPlaying ? burnElapsedSim : null;
-  const paybackT = renderBurnChart(burnChartCanvas, burnModel, burnMode, horizonSeconds, liveT);
-  burnChartCaption.textContent =
-    paybackT != null
-      ? `At this rate, cumulative output reaches ITER's magnet energy (51 GJ) after ${formatTime(paybackT)}.`
-      : `Cumulative output over ${TIMEFRAME_PRESETS[state.timeframeKey].label} doesn't reach ITER's magnet energy (51 GJ) at this rate.`;
+  const breakevenT = renderBurnChart(burnChartCanvas, burnModel, burnMode, horizonSeconds, capture, activationEnergySpent_J, liveT);
+  if (!magnetActivated) {
+    burnChartCaption.textContent = `Press Play to activate the field (${formatEnergy(ITER_MAGNET_ENERGY_J)}) and start the reaction.`;
+  } else if (breakevenT != null) {
+    burnChartCaption.textContent = `At this rate, electric output pays back the field's activation energy after ${formatTime(breakevenT)}.`;
+  } else {
+    burnChartCaption.textContent = `Electric output over ${TIMEFRAME_PRESETS[state.timeframeKey].label} doesn't pay back the field's activation energy at this rate.`;
+  }
 }
 
 selectConfig(state.configKey);
