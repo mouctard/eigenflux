@@ -52,6 +52,26 @@ export function createTokamakViewer(container) {
     }
   }
 
+  // The coil/cabinet group's children mostly share geometry/material instances (all 16 TF
+  // coils reuse one tube geometry, for instance), so dispose each unique one exactly once
+  // rather than per-mesh -- avoids double-disposing a shared resource.
+  function disposeStructure(group) {
+    if (!group) return;
+    scene.remove(group);
+    const seenGeo = new Set(),
+      seenMat = new Set();
+    group.traverse((obj) => {
+      if (obj.geometry && !seenGeo.has(obj.geometry)) {
+        seenGeo.add(obj.geometry);
+        obj.geometry.dispose();
+      }
+      if (obj.material && !seenMat.has(obj.material)) {
+        seenMat.add(obj.material);
+        obj.material.dispose();
+      }
+    });
+  }
+
   // Revolves an ordered ring of (R, Z) poloidal points around the Z (three.js Y) axis --
   // the same axisymmetric "surface of revolution" construction as
   // src/stellarator/viewer.js's buildGeometry, just computing (X, Y, Z) from a 2D (R, Z)
@@ -179,10 +199,8 @@ export function createTokamakViewer(container) {
   function setEquilibrium(mesh, nRho, nTheta) {
     clearGroup(surfaceMeshes);
     surfaceMeshes = [];
-    if (coilGroup) {
-      scene.remove(coilGroup);
-      coilGroup = null;
-    }
+    disposeStructure(coilGroup);
+    coilGroup = null;
 
     let minR = Infinity,
       maxR = -Infinity,
