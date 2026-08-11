@@ -410,6 +410,40 @@ canvas {
   margin-top: 0.15rem;
 }
 
+.burn-chart-wrap {
+  margin-top: 1.25rem;
+}
+
+.burn-chart-wrap canvas {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 640 / 220;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: block;
+}
+
+.burn-chart-caption {
+  margin: 0.5rem 0 0;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.story-link {
+  display: inline-block;
+  margin-top: 1.25rem;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--fg);
+  text-decoration: none;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 2px;
+}
+
+.story-link:hover {
+  border-color: var(--fg);
+}
+
 .legend {
   margin-top: 0.8rem;
 }
@@ -456,6 +490,57 @@ canvas {
   font-size: 0.8rem;
   color: var(--muted);
   margin-top: 0.75rem;
+}
+
+.story-main {
+  max-width: 720px;
+  margin: 0 auto;
+  display: block;
+}
+
+.story-intro {
+  color: #333;
+  font-size: 1rem;
+  margin-bottom: 2.5rem;
+}
+
+.story-scene {
+  margin-bottom: 3rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--line);
+}
+
+.story-scene h2 {
+  font-size: 1.15rem;
+  margin: 0 0 1rem;
+}
+
+.story-scene p {
+  color: #333;
+  margin: 0.8rem 0;
+}
+
+.story-canvas {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 640 / 180;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: block;
+  margin-bottom: 1rem;
+}
+
+.story-branch-note {
+  font-size: 0.88rem;
+  color: var(--muted);
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 0.7rem 0.9rem;
+}
+
+.story-summary {
+  border-top: 2px solid var(--fg);
 }
 
 .how-it-works {

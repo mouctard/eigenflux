@@ -2,9 +2,14 @@
 
 export function formatTime(s) {
   if (s < 60) return s.toFixed(1) + " s";
-  const m = Math.floor(s / 60);
-  const rem = s - m * 60;
-  return `${m}m ${rem.toFixed(0)}s`;
+  if (s < 3600) {
+    const m = Math.floor(s / 60);
+    const rem = s - m * 60;
+    return `${m}m ${rem.toFixed(0)}s`;
+  }
+  const h = Math.floor(s / 3600);
+  const remM = Math.floor((s - h * 3600) / 60);
+  return `${h}h ${remM}m`;
 }
 
 export function formatPower(W) {
@@ -20,7 +25,8 @@ export function formatPower(W) {
 export function formatEnergy(J) {
   if (J < 1e6) return (J / 1e3).toFixed(1) + " kJ";
   if (J < 1e9) return (J / 1e6).toFixed(1) + " MJ";
-  return (J / 1e9).toFixed(2) + " GJ";
+  if (J < 1e12) return (J / 1e9).toFixed(2) + " GJ";
+  return (J / 1e12).toFixed(2) + " TJ";
 }
 
 const SUPERSCRIPT = "⁰¹²³⁴⁵⁶⁷⁸⁹⁻";

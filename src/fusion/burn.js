@@ -50,16 +50,45 @@ export function createBurnModel({ fuel, T_keV, n0_m3, volume_m3 }) {
     return { n: n0_m3, P: P0, E: P0 * t };
   }
 
+  // Asymptotic total energy a full deplete burn eventually releases as t -> infinity (the
+  // closed form's own limit: E(t) = k*t/(1+a*t) -> k/a as t -> infinity, with k = pairFactor*
+  // V*effectiveSigmaVQ_J*n0^2 and a = n0*effectiveSigmaV). Finite because the fuel runs out;
+  // sustained mode has no such limit (linear in t) since it's continuously refueled.
+  const E_total_deplete = effectiveSigmaV > 0 ? pairFactor * volume_m3 * effectiveSigmaVQ_J * (n0_m3 / effectiveSigmaV) : 0;
+
   return {
     effectiveSigmaV,
+    effectiveSigmaVQ_J,
     avgQ_J,
     P0,
     n0_m3,
     volume_m3,
     neutronFrac,
     chargedFrac,
+    pairFactor,
+    E_total_deplete,
     at(t, mode) {
       return mode === "sustained" ? sustained(t) : deplete(t);
     },
   };
+}
+
+// Time (s) at which cumulative energy E(t) first reaches targetJ, for the given mode -- the
+// inverse of createBurnModel's E(t). Returns null if unreachable (deplete mode, target above
+// E_total_deplete) or if targetJ <= 0.
+//
+// Sustained: E(t) = P0*t (linear)                         -> t = targetJ / P0
+// Deplete:   E(t) = k*t/(1+a*t), k = P0 (since P(0)=k/(1)), a = n0*effectiveSigmaV
+//            k*t/(1+a*t) = targetJ  =>  t = targetJ / (k - targetJ*a), valid for
+//            targetJ < k/a = E_total_deplete (else the denominator is <= 0)
+export function timeToEnergy(burnModel, mode, targetJ) {
+  if (!(targetJ > 0)) return null;
+  if (mode === "sustained") {
+    return burnModel.P0 > 0 ? targetJ / burnModel.P0 : null;
+  }
+  const k = burnModel.P0;
+  const a = burnModel.n0_m3 * burnModel.effectiveSigmaV;
+  if (!(k > 0) || targetJ >= burnModel.E_total_deplete) return null;
+  const denom = k - targetJ * a;
+  return denom > 0 ? targetJ / denom : null;
 }

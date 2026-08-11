@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>eigenflux — follow a single reaction</title>
+<link rel="stylesheet" href="styles/style.css">
+</head>
+<body>
+
+<header>
+  <nav class="crosslink"><a href="index.html">← Tokamak Grad–Shafranov solver</a></nav>
+  <h1>Follow a single reaction</h1>
+  <p class="tagline" id="story-tagline">One <span id="story-fuel-label">D-T</span> reaction, particle by particle, from collision to electricity.</p>
+</header>
+
+<main class="story-main">
+  <p class="story-intro">
+    Everything on the <a href="index.html">main page</a> — fusion power, electric power, the
+    energy chart — comes from averaging over an enormous number of reactions like this one
+    happening every second. This page follows just <strong>one</strong>, end to end, using the
+    same real numbers (masses, energies, efficiencies) computed elsewhere in this app. The
+    animations are schematic toy models, not simulated particle trajectories — real fusion
+    plasmas don't look like this — but every number attached to them is real, and each step
+    says which kind of approximation it's making.
+  </p>
+
+  <section class="story-scene" id="scene-approach">
+    <h2>1. Getting close enough to react</h2>
+    <canvas class="story-canvas" id="canvas-approach" width="640" height="180"></canvas>
+    <p>
+      Both particles carry positive charge, so they repel each other electrostatically — the
+      <strong>Coulomb barrier</strong>. At the temperatures this page's steady-state presets
+      actually use (millions of degrees), the particles' typical kinetic energy is still
+      usually below that barrier classically. The reaction goes ahead anyway because of
+      <strong>quantum tunneling</strong>: there's a small but non-zero chance of "appearing" on
+      the other side of the barrier without classically having enough energy to climb it. This
+      is exactly the same tunneling factor already inside this project's reactivity formula
+      (see the main page's "Choosing a fuel" panel) — the <code>exp(-3ξ)</code> term in the
+      Bosch-Hale parametrization <em>is</em> the tunneling probability, falling off sharply at
+      low temperature, which is the real reason fusion needs the plasma this hot in the first
+      place.
+    </p>
+  </section>
+
+  <section class="story-scene" id="scene-collision">
+    <h2>2. Collision and transformation</h2>
+    <canvas class="story-canvas" id="canvas-collision" width="640" height="180"></canvas>
+    <pre class="eq" id="story-equation"></pre>
+    <p>
+      The two nuclei fuse into a new, unstable combined state, which immediately breaks apart
+      into two different, lighter particles. Add up the masses on each side and they don't
+      quite balance — the products together weigh very slightly less than the reactants did.
+      That missing mass <code>Δm</code> didn't vanish; Einstein's <code>E = Δmc²</code> says it
+      became energy, released as the kinetic energy the two new particles fly apart with. This
+      is the reaction's <code>Q</code>-value: <strong><span id="story-q"></span></strong>.
+    </p>
+  </section>
+
+  <section class="story-scene" id="scene-split">
+    <h2>3. Why the energy splits unevenly</h2>
+    <canvas class="story-canvas" id="canvas-split" width="640" height="180"></canvas>
+    <pre class="eq" id="story-split-eq"></pre>
+    <p>
+      The reacting particles were slow (thermal speeds, not the fast products about to be
+      created), so to good approximation the two products fly apart with equal and opposite
+      momentum, <code>p</code>. Kinetic energy is <code>KE = p²/(2m)</code> — same momentum,
+      smaller mass means <em>more</em> kinetic energy. So the lighter product always gets the
+      lion's share. Using just the particles' mass <em>numbers</em> as a stand-in for their
+      real mass (a toy model, but a good one — see the code comment in
+      <code>src/story/reactionStory.js</code> for how closely it matches the real, measured
+      split) reproduces <span id="story-split-numbers"></span> almost exactly.
+    </p>
+  </section>
+
+  <section class="story-scene" id="scene-fates">
+    <h2>4. Two very different fates</h2>
+    <canvas class="story-canvas" id="canvas-fates" width="640" height="180"></canvas>
+    <p id="story-fates-text"></p>
+  </section>
+
+  <section class="story-scene" id="scene-blanket">
+    <h2>5. What happens to the neutron</h2>
+    <canvas class="story-canvas" id="canvas-blanket" width="640" height="180"></canvas>
+    <p>
+      The neutron travels in a straight line until it slams into the surrounding blanket
+      structure (lithium and beryllium, in real conceptual designs) and is absorbed. Beryllium
+      can undergo an <code>(n,2n)</code> reaction — one neutron in, two out — releasing extra
+      energy and multiplying the neutron's usable heat by roughly
+      <strong><span id="story-blanket-mult"></span></strong> (the same blanket-multiplier
+      figure the main page's "Blanket + steam turbine" energy-capture option uses). Some of
+      those neutrons are captured by lithium instead, via <code>n + ⁶Li → T + ⁴He</code> —
+      breeding new tritium fuel. Real D-T reactors need this: tritium is barely present in
+      nature, so the reactor has to make its own as it runs.
+    </p>
+  </section>
+
+  <section class="story-scene" id="scene-turbine">
+    <h2>6. Heat to electricity</h2>
+    <canvas class="story-canvas" id="canvas-turbine" width="640" height="180"></canvas>
+    <p id="story-turbine-text"></p>
+  </section>
+
+  <section class="story-scene story-summary">
+    <h2>The full accounting, for this one reaction</h2>
+    <pre class="eq" id="story-summary-table"></pre>
+    <p>
+      This is exactly the same <code>convertToElectric</code> calculation the main page runs
+      continuously across trillions of reactions per second — just scaled down to one. Go back
+      and try a different fuel or energy-capture choice to see how these numbers change; the
+      link back keeps whichever ones you had selected.
+    </p>
+  </section>
+</main>
+
+<footer>
+  <p>eigenflux — inspired by <a href="https://baselashraf81.github.io/eigendrum/" target="_blank" rel="noopener">eigendrum</a>.</p>
+</footer>
+
+<script type="module" src="src/story/main.js"></script>
+</body>
+</html>

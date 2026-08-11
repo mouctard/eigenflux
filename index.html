@@ -72,6 +72,15 @@
         its brightness and pulse rate track the instantaneous fusion power level in real time.
       </p>
     </div>
+    <div class="preset-group">
+      <h2>Timeframe</h2>
+      <div id="timeframe-presets" class="preset-list"></div>
+      <p class="reactor-caption">
+        Projects the chart below from the closed-form <code>E(t)</code> directly — no need
+        to actually run the sim for hours. The dashed line is a real reference figure (not
+        computed from this page's arbitrary-unit solver state) for scale.
+      </p>
+    </div>
   </section>
 
   <section class="canvas-wrap">
@@ -116,6 +125,15 @@
           <div class="stat-label">electric energy</div>
         </div>
       </div>
+
+      <div class="burn-chart-wrap">
+        <canvas id="burn-chart" width="640" height="220"></canvas>
+        <p id="burn-chart-caption" class="burn-chart-caption"></p>
+      </div>
+
+      <a id="story-link" href="story.html" target="_blank" rel="noopener" class="story-link">
+        Follow a single reaction, particle by particle →
+      </a>
     </div>
   </section>
 </main>

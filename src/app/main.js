@@ -7,6 +7,7 @@ import { createBurnModel, computeVolume } from "../fusion/burn.js";
 import { FUSION_OPERATING_POINTS } from "../fusion/presets.js";
 import { compileExpr } from "../math/exprParser.js";
 import { renderEquilibrium } from "./render.js";
+import { renderBurnChart } from "./burnChart.js";
 import { buildPresetButtons, setActive, wireHowItWorks, wireKeyboardShortcuts, buildFuelGauges } from "./ui.js";
 import { formatTime, formatPower, formatEnergy, formatRate, formatDensity } from "./format.js";
 import { paintLegendBar } from "./legend.js";
@@ -14,6 +15,7 @@ import { paintLegendBar } from "./legend.js";
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 const statusEl = document.getElementById("status");
+const storyLink = document.getElementById("story-link");
 
 paintLegendBar(document.getElementById("pressure-legend"));
 const meshToggle = document.getElementById("mesh-toggle");
@@ -31,6 +33,15 @@ const FUEL_HOTKEYS = ["z", "x", "c"];
 const CAPTURE_HOTKEYS = ["a", "f"];
 const DEFAULT_CUSTOM_EXPR = "1 + 0.3*cos(3*theta)";
 
+// Chart horizon presets -- UI-only (not physics), so defined here rather than in src/fusion/.
+const TIMEFRAME_PRESETS = {
+  h6: { label: "6h", seconds: 6 * 3600 },
+  h12: { label: "12h", seconds: 12 * 3600 },
+  h24: { label: "24h", seconds: 24 * 3600 },
+};
+const timeframeKeys = Object.keys(TIMEFRAME_PRESETS);
+const TIMEFRAME_HOTKEYS = ["g", "h", "j"];
+
 // Shareable state via URL fragment, e.g. #shape=iterLike&profile=highBeta&fuel=dt&capture=blanketSteam
 // -- mirrors eigendrum's #p=circle. A custom shape adds &r=<encoded r(theta) expression>.
 function parseHash() {
@@ -39,6 +50,7 @@ function parseHash() {
   const profileKey = params.get("profile");
   const fuelKey = params.get("fuel");
   const captureKey = params.get("capture");
+  const timeframeKey = params.get("horizon");
   const isCustomShape = shapeParam === "custom";
   return {
     shapeKey: isCustomShape ? "custom" : shapeKeys.includes(shapeParam) ? shapeParam : shapeKeys[0],
@@ -46,13 +58,21 @@ function parseHash() {
     profileKey: profileKeys.includes(profileKey) ? profileKey : profileKeys[0],
     fuelKey: fuelKeys.includes(fuelKey) ? fuelKey : fuelKeys[0],
     captureKey: captureKeys.includes(captureKey) ? captureKey : captureKeys[0],
+    timeframeKey: timeframeKeys.includes(timeframeKey) ? timeframeKey : timeframeKeys[0],
   };
 }
 
 function updateHash() {
-  const parts = [`shape=${state.shapeKey}`, `profile=${state.profileKey}`, `fuel=${state.fuelKey}`, `capture=${state.captureKey}`];
+  const parts = [
+    `shape=${state.shapeKey}`,
+    `profile=${state.profileKey}`,
+    `fuel=${state.fuelKey}`,
+    `capture=${state.captureKey}`,
+    `horizon=${state.timeframeKey}`,
+  ];
   if (state.shapeKey === "custom") parts.push(`r=${encodeURIComponent(state.customExpr)}`);
   history.replaceState(null, "", `#${parts.join("&")}`);
+  storyLink.href = `story.html#fuel=${state.fuelKey}&capture=${state.captureKey}`;
 }
 
 const state = parseHash();
@@ -112,6 +132,19 @@ const captureButtons = buildPresetButtons(
   },
   state.captureKey,
   CAPTURE_HOTKEYS
+);
+
+const timeframeButtons = buildPresetButtons(
+  document.getElementById("timeframe-presets"),
+  TIMEFRAME_PRESETS,
+  (key) => {
+    state.timeframeKey = key;
+    setActive(timeframeButtons, key);
+    updateHash();
+    renderBurnState(performance.now());
+  },
+  state.timeframeKey,
+  TIMEFRAME_HOTKEYS
 );
 
 // ---- Custom equation-based shape ------------------------------------------------------
@@ -180,6 +213,7 @@ wireKeyboardShortcuts({
   ...Object.fromEntries(PROFILE_HOTKEYS.map((k, i) => [k, () => profileButtons[profileKeys[i]].click()])),
   ...Object.fromEntries(FUEL_HOTKEYS.map((k, i) => [k, () => fuelButtons[fuelKeys[i]].click()])),
   ...Object.fromEntries(CAPTURE_HOTKEYS.map((k, i) => [k, () => captureButtons[captureKeys[i]].click()])),
+  ...Object.fromEntries(TIMEFRAME_HOTKEYS.map((k, i) => [k, () => timeframeButtons[timeframeKeys[i]].click()])),
 });
 
 meshToggle.addEventListener("change", () => {
@@ -214,6 +248,8 @@ const statEnergyEl = document.getElementById("stat-energy");
 const statRateEl = document.getElementById("stat-rate");
 const statElectricPowerEl = document.getElementById("stat-electric-power");
 const statElectricEnergyEl = document.getElementById("stat-electric-energy");
+const burnChartCanvas = document.getElementById("burn-chart");
+const burnChartCaption = document.getElementById("burn-chart-caption");
 const burnToggleBtn = document.getElementById("burn-toggle");
 const burnResetBtn = document.getElementById("burn-reset");
 const burnSpeedSelect = document.getElementById("burn-speed");
@@ -331,6 +367,14 @@ function renderBurnState(now) {
   const pulseHz = 0.3 + 1.2 * powerLevel;
   state.glow = burnPlaying ? { powerLevel, pulsePhase: (now / 1000) * pulseHz * 2 * Math.PI } : null;
   redraw();
+
+  const horizonSeconds = TIMEFRAME_PRESETS[state.timeframeKey].seconds;
+  const liveT = burnPlaying ? burnElapsedSim : null;
+  const paybackT = renderBurnChart(burnChartCanvas, burnModel, burnMode, horizonSeconds, liveT);
+  burnChartCaption.textContent =
+    paybackT != null
+      ? `At this rate, cumulative output reaches ITER's magnet energy (51 GJ) after ${formatTime(paybackT)}.`
+      : `Cumulative output over ${TIMEFRAME_PRESETS[state.timeframeKey].label} doesn't reach ITER's magnet energy (51 GJ) at this rate.`;
 }
 
 // ---- Equilibrium solve --------------------------------------------------------------
