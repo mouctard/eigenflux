@@ -1,30 +1,7 @@
 // Canvas rendering: pressure colormap (flat-shaded triangles) + flux-surface contours +
 // boundary outline + magnetic-axis marker.
 import { contoursForLevels } from "./contour.js";
-
-// Small hand-rolled "plasma"-style colormap (dark purple -> magenta -> orange -> pale
-// yellow) -- thematically apt for a pressure field, reasonably perceptually ordered,
-// no external palette dependency.
-const STOPS = [
-  [13, 8, 61],
-  [84, 15, 109],
-  [153, 40, 105],
-  [217, 74, 78],
-  [252, 141, 44],
-  [252, 220, 76],
-];
-
-function colormap(t) {
-  const clamped = Math.max(0, Math.min(1, t));
-  const scaled = clamped * (STOPS.length - 1);
-  const i = Math.min(STOPS.length - 2, Math.floor(scaled));
-  const f = scaled - i;
-  const a = STOPS[i], b = STOPS[i + 1];
-  const r = Math.round(a[0] + f * (b[0] - a[0]));
-  const g = Math.round(a[1] + f * (b[1] - a[1]));
-  const bch = Math.round(a[2] + f * (b[2] - a[2]));
-  return `rgb(${r},${g},${bch})`;
-}
+import { colormap } from "./colormap.js";
 
 function fitTransform(mesh, width, height, marginFrac = 0.08) {
   let minR = Infinity, maxR = -Infinity, minZ = Infinity, maxZ = -Infinity;
@@ -45,7 +22,8 @@ function fitTransform(mesh, width, height, marginFrac = 0.08) {
   return ([R, Z]) => [offX + (R - minR) * scale, height - (offY + (Z - minZ) * scale)];
 }
 
-export function renderEquilibrium(ctx, canvas, mesh, psi, pressureField, psiAxis) {
+export function renderEquilibrium(ctx, canvas, mesh, psi, pressureField, psiAxis, opts = {}) {
+  const { showMesh = false } = opts;
   const { width, height } = canvas;
   const toPx = fitTransform(mesh, width, height);
 
@@ -67,6 +45,12 @@ export function renderEquilibrium(ctx, canvas, mesh, psi, pressureField, psiAxis
     ctx.closePath();
     ctx.fillStyle = colormap(t);
     ctx.fill();
+
+    if (showMesh) {
+      ctx.strokeStyle = "rgba(20,20,20,0.35)";
+      ctx.lineWidth = 0.5;
+      ctx.stroke();
+    }
   }
 
   const nLevels = 12;

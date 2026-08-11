@@ -9,6 +9,7 @@
 <body>
 
 <header>
+  <nav class="crosslink"><a href="stellarator.html">3D stellarator viewer →</a></nav>
   <h1>eigenflux</h1>
   <p class="tagline">A live Grad–Shafranov solver for tokamak MHD equilibria, running entirely in your browser.</p>
 </header>
@@ -22,6 +23,12 @@
     <div class="preset-group">
       <h2>Steady state</h2>
       <div id="profile-presets" class="preset-list"></div>
+    </div>
+    <div class="preset-group">
+      <label class="mesh-toggle-label">
+        <input type="checkbox" id="mesh-toggle">
+        Show mesh
+      </label>
     </div>
   </section>
 

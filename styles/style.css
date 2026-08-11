@@ -72,6 +72,10 @@ main {
 }
 
 .preset-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
   text-align: left;
   padding: 0.55rem 0.75rem;
   border: 1px solid var(--line);
@@ -92,6 +96,44 @@ main {
   background: var(--accent);
   color: #fff;
   border-color: var(--accent);
+}
+
+.kbd-hint {
+  font-size: 0.7rem;
+  color: var(--muted);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 0.05rem 0.35rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.preset-btn.active .kbd-hint {
+  color: rgba(255, 255, 255, 0.7);
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+.mesh-toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.88rem;
+  color: #333;
+  cursor: pointer;
+}
+
+.crosslink {
+  margin-bottom: 0.6rem;
+}
+
+.crosslink a {
+  font-size: 0.85rem;
+  color: var(--muted);
+  text-decoration: none;
+  border-bottom: 1px solid var(--line);
+}
+
+.crosslink a:hover {
+  color: var(--fg);
 }
 
 .canvas-wrap {
