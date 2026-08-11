@@ -34,6 +34,45 @@ export function setActive(buttons, key) {
   }
 }
 
+// Builds 1 (self-reaction fuels like D-D) or 2 (cross-species fuels like D-T, D-3He) gauge
+// rows from a fuel preset's `species` list (src/fusion/fuels.js), replacing whatever was
+// there before. Returns one {fillEl, pctEl, densityEl} per species, in order -- since this
+// project's burn model treats all of a fuel's reactant species as equal-density (see
+// src/fusion/burn.js), callers write the same n/pct/density to every entry.
+export function buildFuelGauges(container, fuel) {
+  container.innerHTML = "";
+  return fuel.species.map((sp) => {
+    const gauge = document.createElement("div");
+    gauge.className = "gauge";
+
+    const label = document.createElement("div");
+    label.className = "gauge-label";
+    const dot = document.createElement("span");
+    dot.className = `gauge-dot gauge-dot-${sp.colorClass}`;
+    label.appendChild(dot);
+    label.appendChild(document.createTextNode(sp.label + " "));
+    const pctEl = document.createElement("span");
+    pctEl.textContent = "100%";
+    label.appendChild(pctEl);
+    gauge.appendChild(label);
+
+    const track = document.createElement("div");
+    track.className = "gauge-track";
+    const fillEl = document.createElement("div");
+    fillEl.className = `gauge-fill gauge-fill-${sp.colorClass}`;
+    track.appendChild(fillEl);
+    gauge.appendChild(track);
+
+    const densityEl = document.createElement("div");
+    densityEl.className = "gauge-sub";
+    densityEl.textContent = "—";
+    gauge.appendChild(densityEl);
+
+    container.appendChild(gauge);
+    return { fillEl, pctEl, densityEl };
+  });
+}
+
 export function wireHowItWorks(toggleEl, panelEl) {
   toggleEl.addEventListener("click", () => {
     const open = panelEl.classList.toggle("open");
@@ -42,10 +81,14 @@ export function wireHowItWorks(toggleEl, panelEl) {
 }
 
 // keyMap: { "1": () => ..., "q": () => ... }. Modifier combos (cmd/ctrl/alt) pass through
-// untouched so browser shortcuts keep working.
+// untouched so browser shortcuts keep working, and so does any typing into a text field (the
+// custom-shape equation input) or other editable element -- otherwise typing e.g. "cos" into
+// it would also fire the "c" fuel hotkey.
 export function wireKeyboardShortcuts(keyMap) {
   window.addEventListener("keydown", (e) => {
     if (e.metaKey || e.ctrlKey || e.altKey) return;
+    const target = e.target;
+    if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)) return;
     const handler = keyMap[e.key.toLowerCase()];
     if (handler) {
       handler();

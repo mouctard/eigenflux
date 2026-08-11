@@ -3,15 +3,23 @@
 // The stiffness matrix K depends only on mesh geometry (the 1/R weight), not on psi, so
 // it is assembled once and reused for every iteration -- only the load vector changes.
 // Each iteration is therefore a single (warm-started) linear solve, not a refactorization.
-import { buildOGridMesh } from "../geom/mesh.js";
+import { buildOGridMesh, buildOGridMeshFromBoundary } from "../geom/mesh.js";
 import { buildDofMap, assembleStiffness, assembleLoad, expandToFull } from "./assemble.js";
 import { pcg } from "../math/cg.js";
 
-export function solveEquilibrium(shape, profile, meshOpts = {}, opts = {}) {
+// boundarySource is either a Miller preset shape ({R0,a,kappa,delta}, meshed exactly as
+// before via buildOGridMesh) or a custom equation-based boundary ({R0, boundaryAt}, meshed
+// via the generic buildOGridMeshFromBoundary already used for Solov'ev validation -- see
+// src/geom/mesh.js). The two mesh functions scale radially differently (Miller scales delta
+// by rho *inside* the cosine; the generic path linearly interpolates the boundary curve from
+// the center), so presets keep using their exact existing path unchanged.
+export function solveEquilibrium(boundarySource, profile, meshOpts = {}, opts = {}) {
   const { nRho = 26, nTheta = 48 } = meshOpts;
   const { tol = 1e-6, maxIter = 60 } = opts;
 
-  const mesh = buildOGridMesh(shape, { nRho, nTheta });
+  const mesh = boundarySource.boundaryAt
+    ? buildOGridMeshFromBoundary(boundarySource.R0, boundarySource.boundaryAt, { nRho, nTheta })
+    : buildOGridMesh(boundarySource, { nRho, nTheta });
   const dofMap = buildDofMap(mesh);
   const K = assembleStiffness(mesh, dofMap);
 

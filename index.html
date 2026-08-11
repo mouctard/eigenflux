@@ -19,10 +19,26 @@
     <div class="preset-group">
       <h2>Shape</h2>
       <div id="shape-presets" class="preset-list"></div>
+      <button id="custom-shape-toggle" type="button" class="ghost-toggle">✎ Custom (equation) <span class="kbd-hint">4</span></button>
+      <div id="custom-shape-panel" class="custom-shape-panel" hidden>
+        <label class="custom-shape-label">
+          r(θ) = <input id="custom-shape-input" type="text" value="1 + 0.3*cos(3*theta)" spellcheck="false" autocomplete="off">
+        </label>
+        <div id="custom-shape-error" class="custom-shape-error"></div>
+        <div class="custom-shape-hint">Press Enter to solve. Functions: sin cos tan sqrt abs exp, constant pi.</div>
+      </div>
     </div>
     <div class="preset-group">
       <h2>Steady state</h2>
       <div id="profile-presets" class="preset-list"></div>
+    </div>
+    <div class="preset-group">
+      <h2>Fuel</h2>
+      <div id="fuel-presets" class="preset-list"></div>
+    </div>
+    <div class="preset-group">
+      <h2>Energy capture</h2>
+      <div id="capture-presets" class="preset-list"></div>
     </div>
     <div class="preset-group">
       <label class="mesh-toggle-label">
@@ -44,8 +60,17 @@
           <option value="5">5×</option>
           <option value="10" selected>10×</option>
           <option value="20">20×</option>
+          <option value="50">50×</option>
+          <option value="100">100×</option>
         </select>
       </label>
+      <p class="reactor-caption">
+        <strong>Deplete</strong> burns fuel down following <code>n(t) = n₀/(1 + n₀⟨σv⟩t)</code> —
+        real depletion timescales are tens of seconds to minutes at 1×, so try a higher
+        speed to see it happen quickly. <strong>Sustained</strong> refuels exactly as fast
+        as fuel burns, holding density constant. The core's pulsing glow isn't decorative —
+        its brightness and pulse rate track the instantaneous fusion power level in real time.
+      </p>
     </div>
   </section>
 
@@ -63,18 +88,7 @@
     </div>
 
     <div class="reactor-readout">
-      <div class="fuel-gauges">
-        <div class="gauge">
-          <div class="gauge-label"><span class="gauge-dot gauge-dot-d"></span>Deuterium <span id="d-pct">100%</span></div>
-          <div class="gauge-track"><div id="d-fill" class="gauge-fill gauge-fill-d"></div></div>
-          <div class="gauge-sub" id="d-density">—</div>
-        </div>
-        <div class="gauge">
-          <div class="gauge-label"><span class="gauge-dot gauge-dot-t"></span>Tritium <span id="t-pct">100%</span></div>
-          <div class="gauge-track"><div id="t-fill" class="gauge-fill gauge-fill-t"></div></div>
-          <div class="gauge-sub" id="t-density">—</div>
-        </div>
-      </div>
+      <div id="fuel-gauges" class="fuel-gauges"></div>
 
       <div class="stat-row">
         <div class="stat-tile">
@@ -92,6 +106,14 @@
         <div class="stat-tile">
           <div class="stat-value" id="stat-rate">0/s</div>
           <div class="stat-label">reaction rate</div>
+        </div>
+        <div class="stat-tile stat-tile-electric">
+          <div class="stat-value" id="stat-electric-power">0 MW</div>
+          <div class="stat-label">electric power</div>
+        </div>
+        <div class="stat-tile stat-tile-electric">
+          <div class="stat-value" id="stat-electric-energy">0 MJ</div>
+          <div class="stat-label">electric energy</div>
         </div>
       </div>
     </div>
@@ -126,6 +148,25 @@
       equilibrium code (EFIT, CHEASE) would. That's the direct equivalent of eigendrum's
       clamped <code>ψ = 0</code> edge condition, and it's the standard simplification used
       by fixed-boundary equilibrium solvers.
+    </p>
+
+    <h3>Custom shapes, by equation</h3>
+    <p>
+      Besides the three fixed presets, the boundary can also be typed directly as a polar
+      equation — the direct analog of eigendrum's "from an equation" panel. The boundary is
+      <code>R(θ) = R₀ + r(θ)cos θ,  Z(θ) = r(θ)sin θ</code> for a user-supplied
+      <code>r(θ)</code> (fixed center <code>R₀ = 3.0</code>, matching the circular preset).
+      This needed no new mesher: the O-grid mesh already had a generic path,
+      <code>buildOGridMeshFromBoundary</code>, that linearly interpolates any star-shaped
+      boundary curve in from the center — until now it was only used internally to validate
+      the solver against Solov'ev's own zero-flux contour (see Validation, above). A
+      hand-written expression parser (no <code>eval</code>, matching the "no dependencies"
+      rule below) compiles <code>r(θ)</code> client-side; it's rejected before meshing if it
+      isn't finite and positive everywhere, which would otherwise self-intersect the mesh.
+      Free-hand drawing (eigendrum's other input mode) is deliberately not offered here — a
+      hand-drawn curve is routinely <em>not</em> star-shaped, which would need real
+      unstructured meshing with point-in-polygon repair, for comparatively little physical
+      payoff (a doodle isn't a meaningful plasma boundary the way it's a meaningful drum).
     </p>
 
     <h3>Why no eigensolver</h3>
@@ -171,30 +212,90 @@
 
     <h3>Live fuel burn</h3>
     <p>
-      Press <strong>Play</strong> to run a real D-T burn calculation on top of the solved
+      Press <strong>Play</strong> to run a real burn calculation on top of the solved
       equilibrium: the standard <strong>0D power-balance model</strong> used for reactor
       scoping (the same category of calculation behind the Lawson criterion), not a scripted
-      animation. Reactivity <code>&lt;σv&gt;(T)</code> uses the Bosch &amp; Hale (1992)
-      parametrization; plasma volume is computed from the actual solved mesh (Pappus's
-      theorem per triangle, treating R,Z as meters); each D-T reaction releases 17.6 MeV
-      (3.5 MeV alpha + 14.1 MeV neutron). <strong>Deplete</strong> mode has no refueling —
+      animation. Plasma volume is computed from the actual solved mesh (Pappus's theorem per
+      triangle, treating R,Z as meters). <strong>Deplete</strong> mode has no refueling —
       <code>dn/dt = -&lt;σv&gt;n²</code> — which has an exact closed-form solution
       <code>n(t) = n₀/(1+n₀&lt;σv&gt;t)</code>, so power and cumulative energy are evaluated
       directly from elapsed time with no per-frame integration to accumulate error.
       <strong>Sustained</strong> mode refuels exactly as fast as fuel burns, holding density
       (and power) constant — real reactors need continuous pellet injection for exactly this
       reason, since natural burn-down timescales at these densities are tens of seconds to
-      minutes, not hours.
+      minutes at 1×, not hours (try a higher speed multiplier to see a full burn-down in a
+      few seconds).
     </p>
     <p>
       Temperature and initial fuel density are illustrative, reactor-ballpark operating
       points assigned per steady-state preset (roughly 6–15 keV, ~0.6–1.1×10²⁰ m⁻³ — in
       ITER's target range), <strong>not</strong> derived from the solver's arbitrary-unit
-      pressure profile amplitudes; the equilibrium shape itself stays the already-solved
-      static one rather than being re-solved as fuel depletes. "Energy produced" is a
-      running tally of fusion output, not a Q-factor netted against input heating power or
-      confinement losses — that would need transport/confinement-time modeling this page
-      doesn't attempt.
+      pressure profile amplitudes, and <strong>the same for every fuel</strong> (see below);
+      the equilibrium shape itself stays the already-solved static one rather than being
+      re-solved as fuel depletes. "Energy produced" is a running tally of fusion output, not
+      a Q-factor netted against input heating power or confinement losses — that would need
+      transport/confinement-time modeling this page doesn't attempt.
+    </p>
+
+    <h3>Choosing a fuel</h3>
+    <p>
+      The <strong>Fuel</strong> selector switches which reaction <code>&lt;σv&gt;(T)</code>
+      and energy release <code>Q</code> feed the burn model above — same 0D power balance,
+      different nuclear physics. All three use the Bosch &amp; Hale (1992) R-matrix
+      parametrization already cited for D-T, extended to D-D's two channels and D-³He:
+    </p>
+    <pre class="eq">D-T:   D + T   → ⁴He(3.5 MeV) + n(14.1 MeV)          Q = 17.6 MeV
+D-D:   D + D   → T(1.0 MeV) + p(3.0 MeV)             Q = 4.03 MeV   (~50%)
+       D + D   → ³He(0.8 MeV) + n(2.4 MeV)            Q = 3.27 MeV   (~50%)
+D-³He: D + ³He → ⁴He(3.6 MeV) + p(14.7 MeV)           Q = 18.3 MeV   (aneutronic)</pre>
+    <p>
+      D-D is a <strong>self-reaction</strong> (both reactants are deuterium), which changes
+      the bookkeeping but not the burn-down formula above: the reaction-rate pair-counting
+      factor (½, since D-D collisions are counted once per pair) and the fact that each
+      reaction consumes <em>two</em> D ions exactly cancel, so
+      <code>dn/dt = -&lt;σv&gt;n²</code> holds for D-D too, with <code>&lt;σv&gt;</code>
+      summed over both channels — the same closed form, not a coincidence, and checked by
+      re-deriving it before implementing (see <code>src/fusion/burn.js</code>). Power still
+      needs the two D-D channels' different <code>Q</code> weighted separately, since they
+      release different energy and one is neutron-heavy and the other isn't.
+    </p>
+    <p>
+      All four reaction channels' coefficients were checked to within 0.4% against an
+      independently reproduced copy of the Bosch-Hale paper's own reference table before
+      being used here (<code>tools/validate_reactivity.mjs</code>) — see References.
+      Temperature and density stay fixed across fuel choice (above), so switching to D-³He
+      at these D-T-range temperatures shows a genuinely, correctly tiny reaction rate: D-³He
+      has a higher Coulomb barrier (helium's +2 charge vs. deuterium/tritium's +1) and its
+      reactivity only becomes comparable to D-T's at much higher temperature — real D-³He
+      reactor concepts are generally envisioned at 50–100+ keV, not the 6–15 keV used here.
+      That's not a bug; it's the actual reason D-T is the near-term fusion fuel of choice.
+    </p>
+
+    <h3>Where the energy goes</h3>
+    <p>
+      Raw fusion power isn't electricity. The <strong>Energy capture</strong> selector applies
+      a simple two-stage conversion on top of the already-computed power/energy above, split
+      by how much of each fuel's output is carried by neutrons vs. charged particles
+      (from the table above — e.g. D-T is ~80% neutron, D-³He's primary channel is ~0%):
+    </p>
+    <pre class="eq">P_electric = ( n_frac × captures_n × blanket_multiplier  +  c_frac × captures_c ) × η_thermal × P_fusion</pre>
+    <p>
+      <strong>Blanket + steam turbine</strong> captures both: a Li/Be breeder blanket
+      multiplies neutron energy (~1.15×, typical cited range 1.1–1.3× for conceptual
+      designs — the (n,2n) reactions that also breed tritium release extra energy), then
+      everything drives a steam (Rankine) cycle at ~34% thermal-to-electric efficiency
+      (typical cited range 30–40%). <strong>Direct conversion</strong> electrostatically
+      decelerates charged fusion products directly into current at a higher ~60% efficiency
+      (theoretical range up to 60–90%, experimental only, never deployed at reactor scale) —
+      but captures <em>none</em> of the neutron energy at all, which is why it does badly on
+      D-T (mostly neutrons) and well on D-³He (no neutrons in the primary channel). Try
+      pairing them: D-T + blanket/steam is the closest to a real near-term reactor; D-³He +
+      direct conversion is the "no neutrons anywhere" aspirational case; the other two
+      pairings show why picking the wrong capture technology for a fuel leaves most of the
+      power on the table. These multiplier/efficiency numbers are illustrative literature
+      ballparks for conceptual designs, the same epistemic status as the temperature/density
+      operating points above — not a specific engineering design, and not independently
+      closed-form-checked the way the solver or the reactivities are.
     </p>
 
     <h3>Not in this first pass</h3>
@@ -206,7 +307,9 @@
       precomputed offline (VMEC/DESC) rather than solved live in-browser — see the
       <a href="stellarator.html">3D stellarator viewer</a>. The burn model doesn't re-solve
       the equilibrium as pressure drops, doesn't evolve temperature, and doesn't account for
-      input heating power or energy confinement time.
+      input heating power or energy confinement time. D-³He's real side reactions (it's not
+      perfectly aneutronic in practice — some D-D branching still happens in a D-³He plasma)
+      aren't modeled; only the primary D+³He channel is.
     </p>
 
     <h3>References</h3>
@@ -215,6 +318,7 @@
       <li>J.P. Freidberg, <em>Ideal Magnetohydrodynamics</em></li>
       <li>A.J. Cerfon &amp; J.P. Freidberg, "One size fits all analytic solutions to the Grad–Shafranov equation" (2010)</li>
       <li>H.-S. Bosch &amp; G.M. Hale, "Improved formulas for fusion cross-sections and thermal reactivities," Nucl. Fusion 32, 611 (1992)</li>
+      <li>T.A. Heltemes, G.A. Moses &amp; J.F. Santarius, "Analysis of an Improved Fusion Reaction Rate Model for Use in Fusion Plasma Simulations," UWFDM-1268, U. Wisconsin Fusion Technology Institute (2005) — reproduces the Bosch-Hale D-D/D-³He coefficients used to cross-check this page's implementation</li>
       <li>Real free/fixed-boundary solvers this mirrors in spirit: FreeGS, CHEASE, EFIT</li>
     </ul>
 

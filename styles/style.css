@@ -6,6 +6,7 @@
   --accent: #1a1a1a;
   --fuel-d: #0891b2;
   --fuel-t: #e11d48;
+  --fuel-he3: #7c3aed;
 }
 
 * {
@@ -112,6 +113,92 @@ main {
 .preset-btn.active .kbd-hint {
   color: rgba(255, 255, 255, 0.7);
   border-color: rgba(255, 255, 255, 0.35);
+}
+
+.ghost-toggle {
+  display: block;
+  margin-top: 0.5rem;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-color: var(--line);
+  text-underline-offset: 2px;
+}
+
+.ghost-toggle:hover {
+  color: var(--fg);
+}
+
+.ghost-toggle.active {
+  color: var(--fg);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.custom-shape-panel {
+  margin-top: 0.6rem;
+  padding: 0.6rem 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #fff;
+}
+
+.custom-shape-panel[hidden] {
+  display: none;
+}
+
+.custom-shape-label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.custom-shape-label input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 0.85rem;
+  background: var(--bg);
+  color: var(--fg);
+}
+
+.custom-shape-label input:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.custom-shape-error {
+  margin-top: 0.4rem;
+  font-size: 0.78rem;
+  color: #b3261e;
+  min-height: 1em;
+}
+
+.custom-shape-hint {
+  margin-top: 0.3rem;
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.reactor-caption {
+  margin: 0.75rem 0 0;
+  font-size: 0.78rem;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.reactor-caption code {
+  font-size: 0.9em;
 }
 
 .mesh-toggle-label {
@@ -250,6 +337,10 @@ canvas {
   background: var(--fuel-t);
 }
 
+.gauge-dot-he3 {
+  background: var(--fuel-he3);
+}
+
 .gauge-track {
   height: 10px;
   border-radius: 5px;
@@ -273,6 +364,10 @@ canvas {
   background: var(--fuel-t);
 }
 
+.gauge-fill-he3 {
+  background: var(--fuel-he3);
+}
+
 .gauge-sub {
   margin-top: 0.25rem;
   font-size: 0.72rem;
@@ -292,6 +387,11 @@ canvas {
   background: #fff;
   border-radius: 8px;
   padding: 0.6rem 0.7rem;
+}
+
+.stat-tile-electric {
+  border-color: #b8dee6;
+  background: #f3fbfc;
 }
 
 .stat-value {

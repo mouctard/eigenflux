@@ -8,6 +8,12 @@ export function formatTime(s) {
 }
 
 export function formatPower(W) {
+  // Tiered like formatEnergy -- some fuel/temperature pairings (e.g. D-3He at D-T-range
+  // temperatures) are deliberately, physically tiny, and a flat "0.0 MW" would hide that
+  // rather than show it.
+  if (W < 1) return W.toFixed(2) + " W";
+  if (W < 1e3) return W.toFixed(1) + " W";
+  if (W < 1e6) return (W / 1e3).toFixed(1) + " kW";
   return (W / 1e6).toFixed(1) + " MW";
 }
 
