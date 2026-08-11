@@ -28,6 +28,47 @@
       <div id="config-presets" class="preset-list"></div>
     </div>
     <p class="viewer-hint">Drag to rotate, scroll to zoom.</p>
+
+    <div class="preset-group">
+      <h2>Fuel</h2>
+      <div id="fuel-presets" class="preset-list"></div>
+    </div>
+    <div class="preset-group">
+      <h2>Energy capture</h2>
+      <div id="capture-presets" class="preset-list"></div>
+    </div>
+    <div class="preset-group">
+      <h2>Reactor</h2>
+      <div class="reactor-buttons">
+        <button id="burn-toggle" type="button" class="reactor-btn">▶ Play</button>
+        <button id="burn-reset" type="button" class="reactor-btn reactor-btn-ghost">Reset</button>
+      </div>
+      <div id="burn-mode-presets" class="preset-list"></div>
+      <label class="speed-label">
+        Speed
+        <select id="burn-speed">
+          <option value="1">1×</option>
+          <option value="5">5×</option>
+          <option value="10" selected>10×</option>
+          <option value="20">20×</option>
+          <option value="50">50×</option>
+          <option value="100">100×</option>
+          <option value="1000">1000×</option>
+          <option value="10000">10000×</option>
+        </select>
+      </label>
+      <p class="reactor-caption">
+        Same 0D burn model as the <a href="index.html">tokamak page</a>, driven by this
+        configuration's actual solved-equilibrium plasma volume (see "How this works" for
+        how that's computed). <strong>Deplete</strong> burns fuel down following
+        <code>n(t) = n₀/(1 + n₀⟨σv⟩t)</code>; <strong>Sustained</strong> holds density
+        constant. The core surface's pulsing glow tracks instantaneous fusion power.
+      </p>
+    </div>
+    <div class="preset-group">
+      <h2>Timeframe</h2>
+      <div id="timeframe-presets" class="preset-list"></div>
+    </div>
   </section>
 
   <section class="canvas-wrap">
@@ -41,6 +82,42 @@
         <span class="legend-end-label">Inner (core)</span>
       </div>
       <div class="legend-caption">Surface color = nesting depth (outer boundary → innermost shown)</div>
+    </div>
+
+    <div class="reactor-readout">
+      <div id="fuel-gauges" class="fuel-gauges"></div>
+
+      <div class="stat-row">
+        <div class="stat-tile">
+          <div class="stat-value" id="stat-time">0.0 s</div>
+          <div class="stat-label">elapsed (sim.)</div>
+        </div>
+        <div class="stat-tile">
+          <div class="stat-value" id="stat-power">0 MW</div>
+          <div class="stat-label">fusion power</div>
+        </div>
+        <div class="stat-tile">
+          <div class="stat-value" id="stat-energy">0 MJ</div>
+          <div class="stat-label">energy produced</div>
+        </div>
+        <div class="stat-tile">
+          <div class="stat-value" id="stat-rate">0/s</div>
+          <div class="stat-label">reaction rate</div>
+        </div>
+        <div class="stat-tile stat-tile-electric">
+          <div class="stat-value" id="stat-electric-power">0 MW</div>
+          <div class="stat-label">electric power</div>
+        </div>
+        <div class="stat-tile stat-tile-electric">
+          <div class="stat-value" id="stat-electric-energy">0 MJ</div>
+          <div class="stat-label">electric energy</div>
+        </div>
+      </div>
+
+      <div class="burn-chart-wrap">
+        <canvas id="burn-chart" width="640" height="220"></canvas>
+        <p id="burn-chart-caption" class="burn-chart-caption"></p>
+      </div>
     </div>
   </section>
 </main>
@@ -88,11 +165,30 @@
       those equilibria also contain; a future pass could add those as an overlay.
     </p>
 
+    <h3>Live fuel burn, driven by a real plasma volume</h3>
     <p>
-      Looking for the live D-T fuel-burn simulation (fusion power, energy produced, fuel
-      consumption over time)? That's on the <a href="index.html">tokamak page</a> — it needs
-      a plasma volume from an actual solved equilibrium, which this geometry-only page
-      doesn't compute.
+      Unlike the <a href="index.html">tokamak page</a> (whose fixed-boundary solve gives no
+      free-boundary plasma volume of its own), this page's flux surfaces already <em>are</em>
+      a real solved 3D boundary, so a real enclosed volume can be computed directly: for each
+      configuration's outermost surface, <code>V = (1/6)|Σ v₀·(v₁×v₂)|</code> summed over the
+      same triangles the viewer already renders — the divergence theorem applied to a closed
+      mesh, the general 3D analog of the tokamak page's Pappus's-theorem volume. Checked
+      against a synthetic torus of exactly known volume before use
+      (<code>tools/validate_stellarator_volume.mjs</code>, converges cleanly, sub-1% error at
+      the resolution actually shipped), and independently against a real published figure:
+      this computation gives <strong>27.9 m³</strong> for W7-X's boundary, against
+      <strong>30 m³</strong> published for the real device — a solid match for an independent
+      geometric calculation from a different equilibrium variant.
+    </p>
+    <p>
+      From there it's the exact same 0D burn model as the tokamak page (same fuel presets,
+      same energy-capture presets, same closed-form deplete/sustained math) — see its "Choosing
+      a fuel" and "Where the energy goes" panels for the physics. Temperature and density are
+      still illustrative reactor-ballpark numbers (matching the tokamak page's own operating
+      points), <strong>not</strong> these experiments' real (far colder and thinner) operating
+      conditions — W7-X, HSX, and NCSX are research devices studying confinement physics, not
+      power reactors, so pairing their real geometry with reactor-scale conditions is a
+      what-if extrapolation, the same one the tokamak page already makes.
     </p>
 
     <p class="dependencies">Uses a vendored, MIT-licensed copy of three.js for rendering — the only dependency in this project. Nothing else is fetched from anywhere at runtime.</p>

@@ -29,7 +29,13 @@ against the closed-form Solov'ev equilibrium.
 Renders nested 3D flux surfaces for three real stellarators — Wendelstein 7-X, HSX, NCSX —
 from **precomputed, DESC-solved equilibria** (not solved live; see its "How this works"
 panel for why 3D MHD equilibria aren't a live-in-browser problem, and where the data
-actually comes from). Orbit-controllable 3D view via a vendored copy of three.js.
+actually comes from). Orbit-controllable 3D view via a vendored copy of three.js. Since
+these flux surfaces already are a real solved 3D boundary (unlike the tokamak page's
+fixed-boundary solve), a real enclosed plasma volume is computed directly from the mesh via
+the divergence theorem, and drives the exact same fuel/energy-capture burn simulation as the
+tokamak page — checked against a synthetic torus of known volume
+(`tools/validate_stellarator_volume.mjs`) and cross-checked against a real published figure
+(27.9 m³ computed vs. 30 m³ published for W7-X).
 
 ## Run it
 
@@ -43,10 +49,11 @@ python3 -m http.server 8000
 ## Validate the tokamak solver
 
 ```
-node tools/validate_solovev.mjs           # closed-form Solov'ev convergence check
-node tools/validate_custom_boundary.mjs   # same check through the equation-based boundary path
-node tools/validate_expr_parser.mjs       # r(theta) expression parser correctness
-node tools/validate_reactivity.mjs        # D-T/D-D/D-3He reactivities vs. a reference table
+node tools/validate_solovev.mjs             # closed-form Solov'ev convergence check
+node tools/validate_custom_boundary.mjs     # same check through the equation-based boundary path
+node tools/validate_expr_parser.mjs         # r(theta) expression parser correctness
+node tools/validate_reactivity.mjs          # D-T/D-D/D-3He reactivities vs. a reference table
+node tools/validate_stellarator_volume.mjs  # 3D mesh-volume formula vs. a synthetic torus
 ```
 
 `validate_solovev.mjs` reports L2 error against the closed-form Solov'ev equilibrium at
@@ -75,6 +82,7 @@ and writes compact binaries to `data/stellarators/*.bin`.
 ```
 index.html            tokamak page
 stellarator.html       3D stellarator viewer
+story.html             single-reaction narrative page (linked from index.html)
 styles/style.css       shared styling
 src/
   math/                sparse CSR matrix, Jacobi-preconditioned CG, r(theta) expression parser
@@ -82,15 +90,17 @@ src/
   fem/                 P1 assembly, Picard equilibrium driver, Solov'ev closed form
   profiles/            pressure/current profile presets (Grad-Shafranov steady states)
   fusion/               Bosch-Hale reactivities, fuel presets, 0D burn model, energy capture
-  app/                 contour extraction, canvas rendering, colormap, UI wiring
+  app/                 contour extraction, canvas/3D rendering, colormap, burn chart, UI wiring
   worker/              off-main-thread tokamak solve
-  stellarator/         .bin loader, three.js viewer, page glue
+  stellarator/         .bin loader, three.js viewer, 3D mesh-volume calc, page glue
+  story/               single-reaction narrative data + canvas animations
 tools/
-  validate_solovev.mjs          tokamak solver validation
-  validate_custom_boundary.mjs  equation-based boundary path regression check
-  validate_expr_parser.mjs      r(theta) expression parser correctness
-  validate_reactivity.mjs       D-T/D-D/D-3He reactivity cross-check
-  export_stellarators.py        stellarator data export (see above)
+  validate_solovev.mjs             tokamak solver validation
+  validate_custom_boundary.mjs     equation-based boundary path regression check
+  validate_expr_parser.mjs         r(theta) expression parser correctness
+  validate_reactivity.mjs          D-T/D-D/D-3He reactivity cross-check
+  validate_stellarator_volume.mjs  3D mesh-volume formula vs. a synthetic torus
+  export_stellarators.py           stellarator data export (see above)
 data/stellarators/     exported .bin flux-surface data (committed, ~144KB each)
 vendor/three/          vendored three.js (MIT) -- the one dependency, not CDN-loaded
 ```

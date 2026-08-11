@@ -23,6 +23,9 @@ export function createViewer(container) {
   dirLight.position.set(3, 5, 2);
   scene.add(dirLight);
 
+  const coreLight = new THREE.PointLight(0xfbbf24, 0, 20);
+  scene.add(coreLight);
+
   let surfaceMeshes = [];
 
   function clearSurfaces() {
@@ -61,6 +64,8 @@ export function createViewer(container) {
     return geo;
   }
 
+  let innermostMaterial = null;
+
   function setSurfaces(data) {
     clearSurfaces();
     const { nTheta, nZeta, surfaces } = data;
@@ -72,8 +77,11 @@ export function createViewer(container) {
       const t = 1 - i / Math.max(1, surfaces.length - 1);
       const [r, g, b] = colormapRGB(t);
       const isOutermost = i === surfaces.length - 1;
+      const isInnermost = i === 0;
       const material = new THREE.MeshStandardMaterial({
         color: new THREE.Color(r / 255, g / 255, b / 255),
+        emissive: new THREE.Color(r / 255, g / 255, b / 255),
+        emissiveIntensity: isInnermost ? 0.1 : 0,
         transparent: true,
         opacity: isOutermost ? 0.16 : 0.42,
         side: THREE.DoubleSide,
@@ -85,6 +93,7 @@ export function createViewer(container) {
       mesh.renderOrder = surfaces.length - i; // draw outer surfaces first (painter's algorithm)
       scene.add(mesh);
       surfaceMeshes.push(mesh);
+      if (isInnermost) innermostMaterial = material;
     });
 
     const outer = surfaces[surfaces.length - 1];
@@ -96,6 +105,27 @@ export function createViewer(container) {
     camera.updateProjectionMatrix();
     controls.target.set(0, 0, 0);
     controls.update();
+
+    // Point light at the innermost surface's centroid -- the closest thing to a "core"
+    // position a non-axisymmetric stellarator surface set has.
+    const inner = surfaces[0];
+    let cx = 0, cy = 0, cz = 0;
+    for (let k = 0; k < inner.X.length; k++) {
+      cx += inner.X[k];
+      cy += inner.Y[k];
+      cz += inner.Z[k];
+    }
+    coreLight.position.set(cx / inner.X.length, cz / inner.X.length, cy / inner.X.length);
+  }
+
+  // Called every burn-simulation frame while playing, with the same powerLevel/pulsePhase
+  // driving the tokamak page's 2D and 3D glow (src/app/render.js, src/app/tokamak3d.js) --
+  // same validated P(t)/P0, three synchronized views.
+  function setGlow(glow) {
+    const level = glow ? Math.max(0, Math.min(1, glow.powerLevel)) : 0;
+    const pulse = glow ? 0.7 + 0.3 * Math.sin(glow.pulsePhase) : 0;
+    coreLight.intensity = level * pulse * 4;
+    if (innermostMaterial) innermostMaterial.emissiveIntensity = 0.1 + level * pulse * 0.9;
   }
 
   function onResize() {
@@ -114,5 +144,5 @@ export function createViewer(container) {
   }
   animate();
 
-  return { setSurfaces, onResize };
+  return { setSurfaces, setGlow, onResize };
 }
