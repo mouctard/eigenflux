@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>eigenflux — stellarator flux surfaces</title>
+<link rel="stylesheet" href="styles/style.css">
+<script type="importmap">
+{
+  "imports": {
+    "three": "./vendor/three/three.module.min.js"
+  }
+}
+</script>
+</head>
+<body>
+
+<header>
+  <nav class="crosslink"><a href="index.html">← Tokamak Grad–Shafranov solver</a></nav>
+  <h1>eigenflux — stellarators</h1>
+  <p class="tagline">Nested flux surfaces from real, DESC-solved 3D MHD equilibria.</p>
+</header>
+
+<main>
+  <section class="controls">
+    <div class="preset-group">
+      <h2>Configuration</h2>
+      <div id="config-presets" class="preset-list"></div>
+    </div>
+    <p class="viewer-hint">Drag to rotate, scroll to zoom.</p>
+  </section>
+
+  <section class="canvas-wrap">
+    <div id="viewer" class="viewer3d"></div>
+    <p id="status" class="status">Loading…</p>
+  </section>
+</main>
+
+<section class="how-it-works">
+  <button id="how-toggle" aria-expanded="false">How this works ▾</button>
+  <div id="how-panel" class="how-panel">
+
+    <p>
+      Stellarators confine plasma with a fully three-dimensional, non-axisymmetric magnetic
+      field — there's no 2D poloidal cross-section to reduce the problem to, unlike the
+      <a href="index.html">tokamak page</a>. Solving a 3D MHD equilibrium (with a real solver
+      like <a href="https://github.com/PlasmaControl/DESC" target="_blank" rel="noopener">DESC</a>
+      or VMEC) is genuinely heavy — not something to run fresh in a browser tab.
+    </p>
+
+    <h3>Where this data comes from</h3>
+    <p>
+      These flux surfaces are <strong>not solved live</strong>. They're read from
+      <a href="https://github.com/PlasmaControl/DESC/tree/master/desc/examples" target="_blank" rel="noopener">precomputed
+      equilibria published in the DESC repository itself</a> — real DESC-solved solutions
+      for real stellarator configurations, exported offline (<code>tools/export_stellarators.py</code>)
+      to a compact binary format this page just reads and renders. Four nested flux
+      surfaces per configuration (at normalized radius ρ = 0.3, 0.55, 0.8, 1.0) are shown,
+      colored by nesting depth with the same colormap as the tokamak page.
+    </p>
+
+    <h3>The configurations</h3>
+    <ul>
+      <li><strong>Wendelstein 7-X</strong> — the operating superconducting stellarator at
+        Max Planck IPP in Greifswald, Germany. 5 field periods, optimized for quasi-isodynamic
+        confinement.</li>
+      <li><strong>HSX</strong> — the Helically Symmetric Experiment at the University of
+        Wisconsin–Madison. 4 field periods, the first stellarator built around
+        quasi-helical symmetry.</li>
+      <li><strong>NCSX</strong> — the National Compact Stellarator Experiment design from
+        PPPL. 3 field periods, quasi-axisymmetric.</li>
+    </ul>
+
+    <h3>Units and caveats</h3>
+    <p>
+      Coordinates are in meters, at each device's actual real-world scale (W7-X's major
+      radius is several times HSX's, and the two look it here). This page shows geometry
+      — flux-surface shape — not the pressure/current profiles or stability properties
+      those equilibria also contain; a future pass could add those as an overlay.
+    </p>
+
+    <p class="dependencies">Uses a vendored, MIT-licensed copy of three.js for rendering — the only dependency in this project. Nothing else is fetched from anywhere at runtime.</p>
+  </div>
+</section>
+
+<footer>
+  <p>eigenflux — inspired by <a href="https://baselashraf81.github.io/eigendrum/" target="_blank" rel="noopener">eigendrum</a>.</p>
+</footer>
+
+<script type="module" src="src/stellarator/main.js"></script>
+</body>
+</html>
