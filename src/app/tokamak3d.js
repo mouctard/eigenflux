@@ -11,6 +11,7 @@
 import * as THREE from "three";
 import { OrbitControls } from "../../vendor/three/controls/OrbitControls.js";
 import { colormapRGB } from "./colormap.js";
+import { getCanvasPalette, onThemeChange } from "./theme.js";
 
 const N_ZETA = 48; // toroidal (long-way-round) segments for the revolved surfaces
 const SURFACE_FRACS = [0.15, 0.4, 0.7, 1.0]; // innermost -> outermost, as fractions of nRho
@@ -19,7 +20,10 @@ const N_CABINETS = 6;
 
 export function createTokamakViewer(container) {
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0xfafaf8);
+  scene.background = new THREE.Color(getCanvasPalette().sceneBg);
+  onThemeChange(() => {
+    scene.background = new THREE.Color(getCanvasPalette().sceneBg);
+  });
 
   const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.01, 100);
   camera.position.set(6, 4, 6);

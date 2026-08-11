@@ -2,6 +2,7 @@
 // boundary outline + magnetic-axis marker.
 import { contoursForLevels } from "./contour.js";
 import { colormap, colormapRGB } from "./colormap.js";
+import { getCanvasPalette } from "./theme.js";
 
 function fitTransform(mesh, width, height, marginFrac = 0.08) {
   let minR = Infinity, maxR = -Infinity, minZ = Infinity, maxZ = -Infinity;
@@ -26,8 +27,9 @@ export function renderEquilibrium(ctx, canvas, mesh, psi, pressureField, psiAxis
   const { showMesh = false, glow = null, fuelFrac = 1 } = opts;
   const { width, height } = canvas;
   const toPx = fitTransform(mesh, width, height);
+  const palette = getCanvasPalette();
 
-  ctx.fillStyle = "#fafaf8";
+  ctx.fillStyle = palette.canvasBg;
   ctx.fillRect(0, 0, width, height);
 
   const maxP = pressureField(0);
@@ -47,7 +49,7 @@ export function renderEquilibrium(ctx, canvas, mesh, psi, pressureField, psiAxis
     ctx.fill();
 
     if (showMesh) {
-      ctx.strokeStyle = "rgba(20,20,20,0.35)";
+      ctx.strokeStyle = palette.gridStroke;
       ctx.lineWidth = 0.5;
       ctx.stroke();
     }
@@ -60,7 +62,7 @@ export function renderEquilibrium(ctx, canvas, mesh, psi, pressureField, psiAxis
   // burn" in the how-it-works panel). Drawn before contours/boundary so those stay crisp.
   const frac = Math.max(0, Math.min(1, fuelFrac));
   if (frac < 1) {
-    ctx.fillStyle = `rgba(250, 250, 248, ${((1 - frac) * 0.88).toFixed(3)})`;
+    ctx.fillStyle = hexToRgba(palette.canvasBg, (1 - frac) * 0.88);
     ctx.fillRect(0, 0, width, height);
   }
 
@@ -75,7 +77,7 @@ export function renderEquilibrium(ctx, canvas, mesh, psi, pressureField, psiAxis
   for (let k = 1; k <= nLevels; k++) levels.push((psiAxis * k) / (nLevels + 1));
   const contourMap = contoursForLevels(mesh, psi, levels);
 
-  ctx.strokeStyle = "rgba(255,255,255,0.55)";
+  ctx.strokeStyle = palette.gridLine;
   ctx.lineWidth = 1;
   for (const segments of contourMap.values()) {
     for (const [a, b] of segments) {
@@ -87,7 +89,7 @@ export function renderEquilibrium(ctx, canvas, mesh, psi, pressureField, psiAxis
     }
   }
 
-  ctx.strokeStyle = "#1a1a1a";
+  ctx.strokeStyle = palette.boundaryLine;
   ctx.lineWidth = 2;
   ctx.beginPath();
   mesh.boundaryNodes.forEach((idx, k) => {
@@ -98,10 +100,16 @@ export function renderEquilibrium(ctx, canvas, mesh, psi, pressureField, psiAxis
   ctx.closePath();
   ctx.stroke();
 
-  ctx.fillStyle = "#111111";
+  ctx.fillStyle = palette.axisMarker;
   ctx.beginPath();
   ctx.arc(ax, ay, 3, 0, 2 * Math.PI);
   ctx.fill();
+}
+
+function hexToRgba(hex, alpha) {
+  const n = parseInt(hex.slice(1), 16);
+  const r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+  return `rgba(${r}, ${g}, ${b}, ${alpha.toFixed(3)})`;
 }
 
 // Soft "hot core" glow, centered on the magnetic axis, modulated by the current fusion

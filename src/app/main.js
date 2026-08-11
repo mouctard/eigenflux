@@ -12,7 +12,8 @@ import { renderEquilibrium } from "./render.js";
 import { renderBurnChart } from "./burnChart.js";
 import { renderShotChart } from "./shotChart.js";
 import { createTokamakViewer } from "./tokamak3d.js";
-import { buildPresetButtons, setActive, wireHowItWorks, wireKeyboardShortcuts, buildFuelGauges } from "./ui.js";
+import { buildPresetButtons, setActive, wireHowItWorks, wireDropdown, wireKeyboardShortcuts, buildFuelGauges } from "./ui.js";
+import { wireThemeToggle } from "./theme.js";
 import {
   formatTime,
   formatPower,
@@ -262,6 +263,18 @@ customShapeInput.addEventListener("keydown", (e) => {
 customShapeInput.addEventListener("blur", applyCustomShape);
 
 wireHowItWorks(document.getElementById("how-toggle"), document.getElementById("how-panel"));
+wireDropdown(document.getElementById("variables-toggle"), document.getElementById("variables-panel"));
+wireDropdown(document.getElementById("faq-toggle"), document.getElementById("faq-panel"));
+
+const themeToggleInput = document.getElementById("theme-toggle-input");
+const themeToggleText = document.getElementById("theme-toggle-text");
+wireThemeToggle(themeToggleInput);
+themeToggleText.textContent = themeToggleInput.checked ? "Dark mode" : "Light mode";
+themeToggleInput.addEventListener("change", () => {
+  themeToggleText.textContent = themeToggleInput.checked ? "Dark mode" : "Light mode";
+  redraw();
+  renderBurnState(performance.now());
+});
 
 wireKeyboardShortcuts({
   ...Object.fromEntries(SHAPE_HOTKEYS.map((k, i) => [k, () => shapeButtons[shapeKeys[i]].click()])),
@@ -347,6 +360,12 @@ const divFdetEl = document.getElementById("div-fdet");
 const divQiEl = document.getElementById("div-qi");
 const divTsEl = document.getElementById("div-ts");
 const shotChartCanvas = document.getElementById("shot-chart");
+const lhThresholdCaptionEl = document.getElementById("lh-threshold-caption");
+const faqHomesPoweredEl = document.getElementById("faq-homes-powered");
+
+// U.S. EIA average annual residential electricity consumption -- see the FAQ dropdown.
+const AVG_US_HOME_KWH_PER_YEAR = 10500;
+const HOURS_PER_YEAR = 8760;
 
 const SHOT_HISTORY_WINDOW_S = 20;
 let shotHistory = [];
@@ -494,7 +513,14 @@ function renderDiagnostics(now, elapsedSim, P_fusion_W, chargedFrac) {
 
   const S_m2 = lastSurfaceArea_m2 || 0;
   const P_LH = computeLHThreshold({ nebar_1e20: n_e_eff / 1e20, Bt_T, S_m2, A_eff: M_amu });
-  const isHMode = rampFrac > 0.05 && P_NBI + P_ECH + P_ICH > P_LH;
+  const P_aux = P_NBI + P_ECH + P_ICH;
+  const isHMode = rampFrac > 0.05 && P_aux > P_LH;
+  if (lhThresholdCaptionEl) {
+    lhThresholdCaptionEl.textContent =
+      rampFrac > 0.05
+        ? `H-mode needs aux. heating (P_NBI+P_ECH+P_ICH) above the Martin08 threshold P_LH ≈ ${P_LH.toFixed(1)} MW — currently providing ${P_aux.toFixed(1)} MW.`
+        : `H-mode threshold (Martin08): P_LH ≈ ${P_LH.toFixed(1)} MW at the current operating point.`;
+  }
 
   // Guarded at a small Ip floor: estimateLambdaQmm's inverse power law blows up as Bp -> 0,
   // which is only reached with no plasma current -- not a meaningful "wide SOL" regime, just
@@ -502,8 +528,9 @@ function renderDiagnostics(now, elapsedSim, P_fusion_W, chargedFrac) {
   const Bp_edge_T = computeBpEdgeT(a_m, Ip_MA);
   const lambdaQ_mm = Ip_MA > 0.05 ? estimateLambdaQmm(Bp_edge_T) : 0;
   const qi_MWm2 = estimateDivertorHeatFluxMWm2(balance.P_loss, R0_m, lambdaQ_mm);
-  const fdet = estimateDetachmentFraction(n_e_eff / 1e20, balance.P_loss);
-  const ts_C = estimateSurfaceTempC(qi_MWm2);
+  const fdet = estimateDetachmentFraction(P_rad, balance.P_loss);
+  const tPulse_s = shotStartReal != null ? (now - shotStartReal) / 1000 : 0;
+  const ts_C = estimateSurfaceTempC(qi_MWm2, tPulse_s);
   const dAlpha = dAlphaSignal(estimateDAlphaBase(balance.P_loss), elapsedSim);
 
   sliceBtEl.textContent = formatTesla(Bt_T);
@@ -594,6 +621,10 @@ const REDRAW_INTERVAL_MS = 66; // ~15 Hz -- plenty smooth for a slow glow pulse,
 // "Live fuel burn" how-it-works section for the framing.
 let magnetActivated = false;
 let activationEnergySpent_J = 0;
+// Real (not sped-up) elapsed time since this shot's magnets were first energized -- drives
+// the divertor surface-temperature estimate's transient conduction time, a genuine hardware
+// timescale independent of the fuel-burn clock's speed multiplier.
+let shotStartReal = null;
 
 const burnModeButtons = buildPresetButtons(
   document.getElementById("burn-mode-presets"),
@@ -626,11 +657,13 @@ burnResetBtn.addEventListener("click", () => {
 function setBurnPlaying(playing) {
   burnPlaying = playing;
   burnToggleBtn.textContent = burnPlaying ? "⏸ Pause" : "▶ Play";
+  burnToggleBtn.classList.toggle("playing", burnPlaying);
   const now = performance.now();
   if (burnPlaying) {
     if (!magnetActivated) {
       magnetActivated = true;
       activationEnergySpent_J = ITER_MAGNET_ENERGY_J;
+      shotStartReal = now;
     }
     if (rampDownRaf) {
       cancelAnimationFrame(rampDownRaf);
@@ -663,6 +696,7 @@ function resetShot() {
   burnLastFrameReal = performance.now();
   magnetActivated = false;
   activationEnergySpent_J = 0;
+  shotStartReal = null;
   setBurnPlaying(false);
 }
 
@@ -714,6 +748,14 @@ function renderBurnState(now) {
   statElectricPowerEl.textContent = formatPower(P_electric);
   statElectricEnergyEl.textContent = formatEnergy(E_electric);
   statNetEnergyEl.textContent = formatSignedEnergy(E_electric - activationEnergySpent_J);
+
+  // Sustaining the current electric power reading for a full year, divided by the EIA's
+  // ~10,500 kWh/year average U.S. household figure (see the FAQ) -- a live unit-conversion
+  // demonstration of the electric-power stat tile just above, not a separate estimate.
+  if (faqHomesPoweredEl) {
+    const homesPowered = (P_electric * HOURS_PER_YEAR) / (AVG_US_HOME_KWH_PER_YEAR * 1000);
+    faqHomesPoweredEl.textContent = Math.round(homesPowered).toLocaleString();
+  }
 
   const powerLevel = burnModel.P0 > 0 ? P / burnModel.P0 : 0;
   const pulseHz = 0.3 + 1.2 * powerLevel;

@@ -11,6 +11,7 @@
 import { timeToEnergy } from "../fusion/burn.js";
 import { convertToElectric } from "../fusion/capture.js";
 import { formatEnergy, formatTime } from "./format.js";
+import { getCanvasPalette } from "./theme.js";
 
 const NSAMPLES = 200;
 
@@ -28,6 +29,7 @@ export function renderBurnChart(canvas, burnModel, mode, horizonSeconds, capture
   const ctx = canvas.getContext("2d");
   const { width, height } = canvas;
   ctx.clearRect(0, 0, width, height);
+  const palette = getCanvasPalette();
 
   const margin = { top: 14, right: 14, bottom: 28, left: 64 };
 
@@ -47,11 +49,11 @@ export function renderBurnChart(canvas, burnModel, mode, horizonSeconds, capture
 
   const toPx = fitTransform(width, height, margin, horizonSeconds, yMax);
 
-  ctx.fillStyle = "#fafaf8";
+  ctx.fillStyle = palette.canvasBg;
   ctx.fillRect(0, 0, width, height);
 
   // Axes
-  ctx.strokeStyle = "#d8d8d3";
+  ctx.strokeStyle = palette.chartAxis;
   ctx.lineWidth = 1;
   ctx.beginPath();
   const [ox, oy] = toPx(0, 0);
@@ -64,7 +66,7 @@ export function renderBurnChart(canvas, burnModel, mode, horizonSeconds, capture
   ctx.stroke();
 
   // Y-axis labels (0, mid, max)
-  ctx.fillStyle = "#6a6a6a";
+  ctx.fillStyle = palette.chartLabel;
   ctx.font = "11px -apple-system, sans-serif";
   ctx.textAlign = "right";
   ctx.textBaseline = "middle";
@@ -131,7 +133,7 @@ export function renderBurnChart(canvas, burnModel, mode, horizonSeconds, capture
     const { P, E } = burnModel.at(liveT, mode);
     const { E_electric } = convertToElectric(P, E, burnModel, capture);
     const [px, py] = toPx(liveT, E_electric);
-    ctx.fillStyle = "#111111";
+    ctx.fillStyle = palette.axisMarker;
     ctx.beginPath();
     ctx.arc(px, py, 3.5, 0, 2 * Math.PI);
     ctx.fill();

@@ -5,6 +5,8 @@
 // history buffer of already-computed samples pushed once per animation frame (main.js),
 // since the magnet ramp and flat-top jitter driving these values are inherently time-stepped,
 // not a closed form.
+import { getCanvasPalette } from "./theme.js";
+
 const STRIPS = [
   { key: "Ip_MA", label: "Ip (MA)", color: "#0891b2" },
   { key: "betaN", label: "β_N", color: "#7c3aed" },
@@ -16,11 +18,12 @@ export function renderShotChart(canvas, history, setpoints, windowSeconds) {
   const ctx = canvas.getContext("2d");
   const { width, height } = canvas;
   ctx.clearRect(0, 0, width, height);
-  ctx.fillStyle = "#fafaf8";
+  const palette = getCanvasPalette();
+  ctx.fillStyle = palette.canvasBg;
   ctx.fillRect(0, 0, width, height);
 
   if (!history || history.length < 2) {
-    ctx.fillStyle = "#9a9a94";
+    ctx.fillStyle = palette.chartLabel;
     ctx.font = "12px -apple-system, sans-serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
@@ -55,7 +58,7 @@ export function renderShotChart(canvas, history, setpoints, windowSeconds) {
     // Setpoint reference (dashed)
     if (setpoints[strip.key] > 0) {
       const [, py] = toPx(tMin, setpoints[strip.key]);
-      ctx.strokeStyle = "rgba(0,0,0,0.2)";
+      ctx.strokeStyle = palette.gridStroke;
       ctx.setLineDash([3, 3]);
       ctx.beginPath();
       ctx.moveTo(plotLeft, py);
@@ -83,7 +86,7 @@ export function renderShotChart(canvas, history, setpoints, windowSeconds) {
 
     // Label + current value
     const last = history[history.length - 1];
-    ctx.fillStyle = "#3a3a36";
+    ctx.fillStyle = palette.chartLabel;
     ctx.font = "11px -apple-system, sans-serif";
     ctx.textAlign = "left";
     ctx.textBaseline = "top";
@@ -93,7 +96,7 @@ export function renderShotChart(canvas, history, setpoints, windowSeconds) {
     ctx.fillText(last[strip.key].toFixed(2), margin.left - 6, plotTop);
 
     if (si > 0) {
-      ctx.strokeStyle = "#e5e1d3";
+      ctx.strokeStyle = palette.chartAxis;
       ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.moveTo(0, top);

@@ -29,23 +29,41 @@ for shape, `Q`/`W`/`E`/`R` for profile, `Z`/`X`/`C` for fuel, `A`/`F` for captur
 "How this works" panel for the physics, the deliberate simplifications (fixed boundary, no
 eigensolver needed), and validation against the closed-form Solov'ev equilibrium.
 
-A JET/DIII-D-style operational diagnostics dashboard sits alongside the 2D slice: Bt, an
-H-mode/L-mode badge, β_N, and q_95 near the plot; a "Plasma parameters" block (Ip, W_th, H98,
-Te0, n_e, τ_E, l_i); a "Power and fusion" 0D power balance (P_OH/NBI/ECH/ICH/alpha in,
-P_rad/loss/dW-dt out, P_in/P_out totals); an illustrative "Divertor" panel (λ_q, f_det, q_i,
-T_s); and a real-time scrolling "Shot trace" strip chart. A new **Operating point** preset
-(`src/fusion/operatingPoints.js`, JET-scale / DIII-D-scale) supplies the real-unit Bt/Ip/heating
-inputs the arbitrary-unit solver can't provide on its own. Several of these are genuinely
-derived from the already-solved ψ field or the burn model with no new calibration -- internal
-inductance `l_i` (a scale-invariant ratio of ⟨B_θ²⟩), thermal energy `W_th` and `β_N` (from the
-operating point's real n_e/T and the solved volume), `τ_E`/`H98` (IPB98(y,2) scaling vs. the
-real W_th/P_loss ratio), and the H-mode gate (Martin08 L-H threshold vs. real auxiliary heating
-power) -- validated in `tools/validate_flux_diagnostics.mjs` and
-`tools/validate_diagnostics.mjs`. The divertor block and D-α trace are explicitly illustrative
-(see the how-it-works panel for what's real vs. not). Play now ramps the field/current/heating
-up over ~1.4s and back down over ~1.1s on Pause/Reset (a `magnetRamp` state machine decoupled
-from the existing fuel-burn clock), driving the whole dashboard and the 3D coil glow up and
-down with it, with a small illustrative jitter/ELM-spike texture layered on top at flat-top.
+A JET/DIII-D-style operational diagnostics dashboard, framed as an operator's control room
+(ignite today's plasma, then watch the same numbers a real control room would), sits alongside
+the 2D slice: B<sub>t</sub>, an H-mode/L-mode badge, β<sub>N</sub>, and q<sub>95</sub> near the
+plot; a "Plasma parameters" block (I<sub>p</sub>, W<sub>th</sub>, H<sub>98</sub>, T<sub>e0</sub>,
+n<sub>e</sub>, τ<sub>E</sub>, l<sub>i</sub>); a "Power and fusion" 0D power balance
+(P<sub>OH</sub>/P<sub>NBI</sub>/P<sub>ECH</sub>/P<sub>ICH</sub>/P<sub>α</sub> in,
+P<sub>rad</sub>/P<sub>loss</sub>/dW-dt out, P<sub>in</sub>/P<sub>out</sub> totals, plus a live
+Martin08 H-mode threshold P<sub>LH</sub> caption); a "Divertor" panel (λ<sub>q</sub>,
+f<sub>det</sub>, q<sub>i</sub>, T<sub>s</sub>); and a real-time scrolling "Shot trace" strip
+chart. A new **Operating point** preset (`src/fusion/operatingPoints.js`, JET-scale /
+DIII-D-scale) supplies the real-unit B<sub>t</sub>/I<sub>p</sub>/heating inputs the
+arbitrary-unit solver can't provide on its own. Most of the dashboard is genuinely derived, not
+illustrative: internal inductance l<sub>i</sub> (a scale-invariant ratio of ⟨B<sub>θ</sub>²⟩),
+thermal energy W<sub>th</sub> and β<sub>N</sub> (from the operating point's real n<sub>e</sub>/T
+and the solved volume), τ<sub>E</sub>/H<sub>98</sub> (IPB98(y,2) scaling vs. the real
+W<sub>th</sub>/P<sub>loss</sub> ratio), the H-mode gate (Martin08), and — as of this pass — the
+**divertor block** too: λ<sub>q</sub> (Eich et al. 2013 regression), q<sub>i</sub> (real
+poloidal-flux-expansion × grazing-incidence decomposition), f<sub>det</sub> (the real
+P<sub>rad</sub>/(P<sub>rad</sub>+P<sub>loss</sub>) radiated-fraction proxy), and T<sub>s</sub>
+(real 1D transient conduction into semi-infinite tungsten, using the shot's actual real elapsed
+duration — it genuinely rises the longer a shot runs). Only P<sub>rad</sub>'s own formula and
+the D-α trace remain honestly illustrative — see the how-it-works panel's "Approximations vs.
+reality" table for the full breakdown, and `tools/validate_flux_diagnostics.mjs` /
+`tools/validate_diagnostics.mjs` for what's checked. Play ramps the field/current/heating up
+over ~1.4s and back down over ~1.1s on Pause/Reset (a `magnetRamp` state machine decoupled from
+the fuel-burn clock, whose speed selector now goes down to 0.1× to watch the ramp in detail),
+driving the whole dashboard and the 3D coil glow up and down with it, with a small illustrative
+jitter/ELM-spike texture layered on top at flat-top.
+
+The page is dark-themed by default (a small slider switches to light mode, persisted locally;
+`src/app/theme.js`), responsive down to mobile widths, and has two header dropdowns: a
+**Variables** glossary defining every symbol shown (with the actual defining formula, not just
+an analogy) and an **FAQ** connecting the simulation to real-world scale — including a live
+"homes powered" figure computed from the dashboard's own electric-power reading and the EIA's
+real average U.S. household consumption figure.
 
 ## Stellarator flux-surface viewer (`stellarator.html`)
 
@@ -117,7 +135,8 @@ src/
   profiles/            pressure/current profile presets (Grad-Shafranov steady states)
   fusion/               Bosch-Hale reactivities, fuel presets, 0D burn model, energy capture,
                         real-unit operating points, plasma/power-balance/divertor diagnostics
-  app/                 contour extraction, canvas/3D rendering, colormap, burn/shot charts, UI wiring
+  app/                 contour extraction, canvas/3D rendering, colormap, burn/shot charts,
+                        UI wiring, dark/light theme toggle
   worker/              off-main-thread tokamak solve
   stellarator/         .bin loader, three.js viewer, 3D mesh-volume calc, page glue
   story/               single-reaction narrative data + canvas animations

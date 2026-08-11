@@ -93,38 +93,66 @@ export function computePowerBalance({ P_OH, P_NBI, P_ECH, P_ICH, P_alpha, P_rad,
 // the energy-capture blanket multiplier/efficiency numbers (src/fusion/capture.js). None of
 // these feed the "real" quantities above.
 
-// Eich et al. (2013 Nucl. Fusion) regression-#14 functional form for the SOL heat-flux decay
-// width, cited but not independently re-derived or checked against source data this session.
+// Eich et al. (2013 Nucl. Fusion, "Inter-ELM power decay length for JET and ASDEX Upgrade")
+// regression-#14 scaling for the SOL power-decay width at the outer midplane:
+//   lambda_q[mm] = 0.63 * Bpol,MP[T]^-1.19
+// A real, published, widely-cited empirical scaling (not fitted here) -- Bp_T should be the
+// poloidal field at the outer midplane, approximated here by the Ampere's-law edge value.
 export function estimateLambdaQmm(Bp_T) {
   return 0.63 * Math.pow(Math.max(Bp_T, 1e-3), -1.19);
 }
 
-// Peak divertor heat flux: total loss power spread over two divertor legs, each with a
-// wetted area of roughly 2*pi*R0*lambda_q, further widened by a flux-expansion/spreading
-// factor (real divertor targets see a much larger wetted footprint than the bare midplane
-// mapping, typically an order of magnitude or more) -- without it this simplified estimate
-// overshoots real divertor heat fluxes (single-to-low-double-digit MW/m^2) by ~100x. The
-// factor here is calibrated to a representative point, not derived, same illustrative tier
-// as the rest of this section.
-const DIVERTOR_FLUX_EXPANSION = 39;
+// Peak divertor heat flux, decomposed into real physical effects rather than one fitted
+// constant: the parallel power channel of width lambda_q at the midplane (i) widens
+// poloidally at the target by the poloidal flux expansion f_x = Bpol,midplane/Bpol,target
+// (real tokamak divertor designs typically run f_x ~ 3-6), then (ii) that already-widened
+// footprint is projected onto a target tilted at a shallow grazing/wetted incidence angle
+// theta (real divertor target design values are typically ~2-3 degrees, precisely so this
+// projection spreads an otherwise-unmanageable heat load over a larger physical area) --
+// together these are why real divertor heat fluxes (single-to-low-double-digit MW/m^2) are so
+// much lower than the bare P/(2*pi*R*lambda_q) midplane mapping would suggest. f_x and theta
+// below are representative real tokamak/ITER-class divertor design values, not this specific
+// (imaginary) device's own engineered numbers -- still real physics, just typical parameters.
+const DIVERTOR_FLUX_EXPANSION = 4; // typical real poloidal flux expansion, f_x
+const DIVERTOR_GRAZING_DEG = 2.5; // typical real target grazing/wetted incidence angle
+const DIVERTOR_SPREAD_FACTOR = DIVERTOR_FLUX_EXPANSION / Math.sin((DIVERTOR_GRAZING_DEG * Math.PI) / 180);
 export function estimateDivertorHeatFluxMWm2(P_loss_MW, R0_m, lambdaQ_mm) {
-  const wettedArea = DIVERTOR_FLUX_EXPANSION * 2 * (2 * Math.PI * R0_m * (lambdaQ_mm / 1000));
+  const wettedArea = DIVERTOR_SPREAD_FACTOR * 2 * (2 * Math.PI * R0_m * (lambdaQ_mm / 1000));
   return wettedArea > 0 ? Math.max(0, P_loss_MW) / wettedArea : 0;
 }
 
-// Illustrative detachment fraction: higher density detaches more easily, higher loss power
-// makes it harder -- correct qualitative directions, calibrated so the sample operating point
-// (nbar~1.19e20, P_loss~22.2MW) lands near f_det~0.46.
-export function estimateDetachmentFraction(nebar_1e20, P_loss_MW) {
-  if (!(P_loss_MW > 0)) return 0;
-  return Math.max(0, Math.min(0.95, 1.987 * Math.sqrt(Math.max(0, nebar_1e20)) / Math.sqrt(P_loss_MW)));
+// Detachment fraction, as the real radiated-power fraction of total exhaust power --
+// f_det = P_rad / (P_rad + P_loss). This is the standard real proxy for how far a divertor
+// is toward detachment: as more of the exhaust power is radiated away (by seeded or intrinsic
+// impurities) before ever reaching the target, less reaches it as conducted/convected heat,
+// which is mechanistically most of what "detachment" protects the target from. It is a
+// simplification of real 2-point-model SOL physics (which also tracks momentum/pressure loss
+// and recombination along the flux tube, not modeled here) but uses only already-real,
+// already-computed power-balance quantities -- no separate fitted constant.
+export function estimateDetachmentFraction(P_rad_MW, P_loss_MW) {
+  const total = Math.max(0, P_rad_MW) + Math.max(0, P_loss_MW);
+  return total > 0 ? Math.max(0, Math.min(1, P_rad_MW / total)) : 0;
 }
 
-// Illustrative divertor surface temperature: linear in incident heat flux from an ambient
-// baseline, calibrated to the sample point (q_i~7.3 MW/m^2 -> ~1846 C) -- not a real
-// transient/steady-state conduction solve.
-export function estimateSurfaceTempC(qi_MWm2) {
-  return 20 + 250 * Math.max(0, qi_MWm2);
+// Divertor surface temperature via real 1D transient conduction into a semi-infinite solid
+// under constant surface heat flux q'' (a standard heat-transfer result, e.g. Incropera,
+// "Fundamentals of Heat and Mass Transfer"): T_surface(t) - T_ambient = (2*q''/e)*sqrt(t/pi),
+// where e = sqrt(k*rho*c) is the target material's thermal effusivity. Tungsten (the real
+// material used in ITER-class divertor monoblocks) properties below are representative
+// elevated-temperature values, not a specific alloy/grade's certified data. tPulse_s is the
+// real elapsed time (not the sped-up fuel-burn clock) since this shot's magnets were first
+// energized -- a genuinely real hardware timescale, so the target keeps heating up the longer
+// a shot runs, exactly as a real divertor would (this does not model cooling between pulses).
+const TUNGSTEN_K_WmK = 120; // thermal conductivity, W/(m*K)
+const TUNGSTEN_RHO_KGM3 = 19300; // density, kg/m^3
+const TUNGSTEN_C_JKGK = 134; // specific heat, J/(kg*K)
+const TUNGSTEN_EFFUSIVITY = Math.sqrt(TUNGSTEN_K_WmK * TUNGSTEN_RHO_KGM3 * TUNGSTEN_C_JKGK);
+const AMBIENT_C = 20;
+export function estimateSurfaceTempC(qi_MWm2, tPulse_s) {
+  const q_Wm2 = Math.max(0, qi_MWm2) * 1e6;
+  const t = Math.max(0.001, tPulse_s);
+  const riseC = ((2 * q_Wm2) / TUNGSTEN_EFFUSIVITY) * Math.sqrt(t / Math.PI);
+  return AMBIENT_C + riseC;
 }
 
 // Illustrative radiated power: n^2*sqrt(T)-shaped (the qualitative Bremsstrahlung scaling),

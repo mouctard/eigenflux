@@ -80,6 +80,28 @@ export function wireHowItWorks(toggleEl, panelEl) {
   });
 }
 
+// Small popover dropdown (Variables / FAQ glossaries): toggles open on click, closes on an
+// outside click or Escape -- the extra behavior a floating menu needs that the inline
+// how-it-works panel above doesn't (that one never needs to auto-close).
+export function wireDropdown(toggleEl, panelEl) {
+  function close() {
+    panelEl.classList.remove("open");
+    toggleEl.classList.remove("active");
+    toggleEl.setAttribute("aria-expanded", "false");
+  }
+  toggleEl.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const open = panelEl.classList.toggle("open");
+    toggleEl.classList.toggle("active", open);
+    toggleEl.setAttribute("aria-expanded", String(open));
+  });
+  panelEl.addEventListener("click", (e) => e.stopPropagation());
+  document.addEventListener("click", close);
+  window.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") close();
+  });
+}
+
 // keyMap: { "1": () => ..., "q": () => ... }. Modifier combos (cmd/ctrl/alt) pass through
 // untouched so browser shortcuts keep working, and so does any typing into a text field (the
 // custom-shape equation input) or other editable element -- otherwise typing e.g. "cos" into
