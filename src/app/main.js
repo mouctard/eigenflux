@@ -144,6 +144,21 @@ const profileButtons = buildPresetButtons(
   PROFILE_HOTKEYS
 );
 
+// The ignition-ramp explainer names the actual reactant species being accelerated, which
+// depends on which fuel is selected -- deuterium/tritium (hydrogen isotopes) for D-T, plain
+// deuterium for the D-D self-reaction, deuterium/helium-3 only when D-³He is chosen. Keeping
+// this in sync with the real fuel choice avoids the panel claiming "Helium isotopes" are being
+// accelerated when the default (and every non-D-³He) fuel is actually hydrogen isotopes.
+const RAMP_FUEL_LABELS = {
+  dt: "deuterium and tritium",
+  dd: "deuterium",
+  dHe3: "deuterium and helium-3",
+};
+const rampFuelLabelEl = document.getElementById("ramp-fuel-label");
+function updateRampFuelLabel() {
+  if (rampFuelLabelEl) rampFuelLabelEl.textContent = RAMP_FUEL_LABELS[state.fuelKey] || "fuel ions";
+}
+
 const fuelButtons = buildPresetButtons(
   document.getElementById("fuel-presets"),
   FUEL_PRESETS,
@@ -151,11 +166,13 @@ const fuelButtons = buildPresetButtons(
     state.fuelKey = key;
     setActive(fuelButtons, key);
     updateHash();
+    updateRampFuelLabel();
     rebuildBurnModel();
   },
   state.fuelKey,
   FUEL_HOTKEYS
 );
+updateRampFuelLabel();
 
 const captureButtons = buildPresetButtons(
   document.getElementById("capture-presets"),

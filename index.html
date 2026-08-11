@@ -33,9 +33,9 @@
     <div>
       <h1>eigenflux</h1>
       <p class="tagline">
-        You're the operator on shift: ignite a live Grad–Shafranov tokamak plasma, then watch
-        the same real-time metrics a fusion plant control room would — solved entirely in your
-        browser, no backend.
+        Good morning Homer! You're the operator on shift at the Springfield's Nuclear Fusion
+        Power Plant: ignite a live plasma (simulated with Grad–Shafranov), then watch the
+        real-time metrics in this fusion plant control room dashboard.
       </p>
     </div>
     <label class="theme-toggle">
@@ -180,7 +180,7 @@
       <h2>Reactor</h2>
       <p class="reactor-caption shift-brief">
         Your shift starts now. Hit <strong>Play</strong> to ignite today's plasma, then watch
-        the dashboard to the right to keep it in spec.
+        the dashboard to the right to keep it in optimal operating conditions.
       </p>
       <div class="reactor-buttons">
         <button id="burn-toggle" type="button" class="reactor-btn">▶ Play</button>
@@ -207,22 +207,27 @@
         <summary class="ghost-toggle">ℹ How Play/Reset/Deplete/Sustained work</summary>
         <div class="collapsible-panel">
           <p class="reactor-caption">
-            Slow it down (0.1×–0.5×) to watch the ignition ramp itself — the field, current, and
-            heating powers rising together — instead of the fuel-burn clock. See "The shot" below.
+            Slow down (0.1×–0.5×) the speed to focus on the ignition ramp itself — the critical
+            point when the magnetic field is turned on and the <span id="ramp-fuel-label">deuterium
+            and tritium</span> are being accelerated. With the B field, current, and heating
+            powers rising together — the gases ignite and turn into a fiery plasma. See "The
+            shot" below.
           </p>
           <p class="reactor-caption">
-            <strong>Play</strong> energizes the confining magnetic field (real reference cost:
-            ITER's 51 GJ magnet system, charged once per shot) and starts accelerating/heating
-            the fuel ions — the field, current, and heating powers ramp up over about 1.4s (see
-            "The shot" below), visibly driving the new diagnostics dashboard up with them.
-            <strong>Reset</strong> de-energizes the field (ramping back down) and ends the shot —
-            fuel, clock, and the activation cost all return to zero, so the next Play pays it
-            again. <strong>Deplete</strong> burns fuel down following
-            <code>n(t) = n₀/(1 + n₀⟨σv⟩t)</code> — real depletion timescales are tens of seconds to
-            minutes at 1×, so try a higher speed to see it happen quickly. <strong>Sustained</strong>
-            refuels exactly as fast as fuel burns, holding density constant. The plasma visibly
-            fades as fuel depletes, and its pulsing glow tracks instantaneous fusion power — both
-            above and in the 3D view below, all tied to the same numbers.
+            Pressing <strong>Play</strong> energizes the confining magnetic field (real reference
+            cost: ITER's 51 GJ magnet system, charged once per shot) and starts
+            accelerating/heating the fuel ions — the field, current, and heating powers ramp up
+            over about 1.4s. The <strong>Reset</strong> button de-energizes the field (ramping
+            back down) and ends the shot — fuel, clock, and the activation cost all return to
+            zero. The <strong>Deplete</strong> option burns fuel down following
+            <code>n(t) = n₀/(1 + n₀⟨σv⟩t)</code> — real depletion timescales are tens of seconds
+            to minutes at 1×, so try a higher speed to see it happen quickly. The
+            <strong>Sustained</strong> option refuels exactly as fast as fuel burns by pumping in
+            the reactants into the chamber, holding the plasma density constant. Admire as the
+            white-hot core of the plasma visibly fades as fuel depletes, and its pulsing glow
+            tracks bursts of energy being created. The wonder of instantaneous fusion power —
+            both above and in the 3D view below, are all represented by the constants and
+            variables in this page.
           </p>
         </div>
       </details>
@@ -234,14 +239,15 @@
         <summary class="ghost-toggle">ℹ How Operating point works</summary>
         <div class="collapsible-panel">
           <p class="reactor-caption">
-            Real-unit toroidal field, plasma current, and auxiliary heating actuators — can't be
-            derived from the solver's own arbitrary-unit profile amplitudes, so these are new
-            real-unit inputs a preset selects, same epistemic tier as the burn model's existing
-            temperature/density operating points below. <strong>JET-scale</strong> is a bigger,
-            higher-field, higher-current machine (real JET: up to 3.45T / 4.8MA); <strong>DIII-D-
-            scale</strong> is smaller and lower-field (real DIII-D: up to 2.2T / 2MA) but carries
-            real electron-cyclotron heating, which JET's real heating mix never had. See "Plasma
-            diagnostics" below for what that difference actually does to confinement.
+            The real-unit toroidal field, plasma current, and auxiliary heating actuators can't
+            be derived from the solver's own arbitrary-unit profile amplitudes, so these are new
+            real-unit inputs that a preset selects. These values represent the same burn model's
+            existing temperature/density operating points as follows below.
+            <strong>JET-scale</strong> is a bigger, higher-field, higher-current machine (real
+            JET: up to 3.45T / 4.8MA); <strong>DIII-D-scale</strong> is smaller and lower-field
+            (real DIII-D: up to 2.2T / 2MA) but carries real electron-cyclotron heating, which
+            JET's real heating mix never had. See "Plasma diagnostics" below for what that
+            difference actually does to confinement.
           </p>
         </div>
       </details>
@@ -297,8 +303,7 @@
             instead vary the taper exponent α: peaked falls off faster from the core (current
             concentrated toward the axis, generally higher l<sub>i</sub>, more sawtooth-prone);
             broad is flatter (more current toward the edge, lower l<sub>i</sub>, generally more
-            stable). Switch between them and watch l<sub>i</sub> respond — that's a real effect of
-            this choice, not an arbitrary-unit one.
+            stable). Switch between them and watch l<sub>i</sub> respond.
           </p>
         </div>
       </details>
@@ -337,8 +342,7 @@
             electrostatically captures only charged fusion products, at higher efficiency (~60%),
             but zero neutron energy — good for aneutronic fuels, bad for neutron-heavy ones. Try
             pairing D-T with Direct conversion, or D-³He with Blanket + steam turbine, to see why
-            the wrong pairing leaves most of the power on the table. See "Where the energy goes"
-            below for the full efficiency numbers and their sourcing.
+            the wrong pairing leaves most of the power on the table.
           </p>
         </div>
       </details>
