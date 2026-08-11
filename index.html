@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>eigenflux — tokamak equilibrium solver</title>
+<link rel="stylesheet" href="styles/style.css">
+</head>
+<body>
+
+<header>
+  <h1>eigenflux</h1>
+  <p class="tagline">A live Grad–Shafranov solver for tokamak MHD equilibria, running entirely in your browser.</p>
+</header>
+
+<main>
+  <section class="controls">
+    <div class="preset-group">
+      <h2>Shape</h2>
+      <div id="shape-presets" class="preset-list"></div>
+    </div>
+    <div class="preset-group">
+      <h2>Steady state</h2>
+      <div id="profile-presets" class="preset-list"></div>
+    </div>
+  </section>
+
+  <section class="canvas-wrap">
+    <canvas id="canvas" width="640" height="640"></canvas>
+    <p id="status" class="status">Solving…</p>
+  </section>
+</main>
+
+<section class="how-it-works">
+  <button id="how-toggle" aria-expanded="false">How this works ▾</button>
+  <div id="how-panel" class="how-panel">
+
+    <p>
+      A tokamak's magnetically confined plasma settles into a steady axisymmetric state
+      described by the <strong>Grad–Shafranov equation</strong>. This page solves it directly,
+      the way <a href="https://baselashraf81.github.io/eigendrum/" target="_blank" rel="noopener">eigendrum</a>
+      solves the clamped-membrane eigenvalue problem for a drum shape — a real PDE, solved
+      live with finite elements, not a canned animation.
+    </p>
+
+    <h3>The equation</h3>
+    <pre class="eq">∫∫ (1/R) ∇ψ·∇v  dR dZ  =  ∫∫ ( R p'(ψ) + FF'(ψ)/R ) v  dR dZ,      ψ = 0 on the boundary</pre>
+    <p>
+      <code>ψ</code> is the poloidal flux; its contours are the nested <strong>flux surfaces</strong>
+      the plasma actually organizes itself along — the direct analog of eigendrum's nodal
+      lines. <code>p'(ψ)</code> and <code>FF'(ψ)</code> are the pressure and toroidal-field
+      profile functions that define a given steady state.
+    </p>
+
+    <h3>Fixed boundary, on purpose</h3>
+    <p>
+      The plasma boundary shape (elongation, triangularity) is imposed directly here, not
+      computed self-consistently from external coil currents the way a real free-boundary
+      equilibrium code (EFIT, CHEASE) would. That's the direct equivalent of eigendrum's
+      clamped <code>ψ = 0</code> edge condition, and it's the standard simplification used
+      by fixed-boundary equilibrium solvers.
+    </p>
+
+    <h3>Why no eigensolver</h3>
+    <p>
+      Unlike the drum problem, this isn't an eigenvalue problem — it's a sequence of
+      <strong>linear</strong> solves. <code>p'(ψ)</code> and <code>FF'(ψ)</code> depend on
+      the unknown <code>ψ</code> itself, so the equation is nonlinear; it's solved by
+      <strong>Picard (fixed-point) iteration</strong>: guess ψ, normalize it against the
+      current magnetic-axis value, evaluate the profile functions, solve the resulting
+      linear system, repeat until it stops changing. The stiffness matrix depends only on
+      mesh geometry (not on ψ), so it's built once and reused every iteration — only the
+      right-hand side changes — which is why a plain Jacobi-preconditioned conjugate
+      gradient solver is enough, no direct factorization or eigensolver required.
+    </p>
+
+    <h3>Validation</h3>
+    <p>
+      For the special case where <code>p'</code> and <code>FF'</code> are both constant,
+      a closed-form solution exists — the classical <strong>Solov'ev equilibrium</strong>
+      (Solov'ev, 1968; see also Freidberg, <em>Ideal Magnetohydrodynamics</em>). This is
+      the same role eigendrum's Bessel-function validation plays for the circular drum.
+      Meshing the solver's mesh against that solution's own zero-flux contour and refining
+      resolution gives clean second-order convergence:
+    </p>
+    <pre class="eq">nRho   nNodes   L2 error
+ 8      385     6.3e-3
+16     1537     1.8e-3   (3.6× reduction)
+32     6145     4.8e-4   (3.6× reduction)
+64    24577     1.3e-4   (3.7× reduction)</pre>
+    <p>
+      This validation is restricted to up-down symmetric (zero-triangularity) boundaries,
+      which is what the closed form covers exactly. The shaped presets above (ITER-like,
+      spherical tokamak) use the same validated solver and assembly code, just without an
+      independent closed-form check of their own.
+    </p>
+
+    <h3>Units</h3>
+    <p>
+      Profile amplitudes (p₀, F₀ per steady-state preset) are solver-internal arbitrary
+      units, chosen to make each preset's qualitative behavior clearly visible — not
+      calibrated to real pressures or currents in pascals or amperes.
+    </p>
+
+    <h3>Not in this first pass</h3>
+    <p>
+      Safety-factor (q) profiles and rational-surface resonances — the direct fusion analog
+      of "striking a resonant mode" — need flux-surface-averaged line integrals not yet
+      implemented here. <strong>Stellarators</strong> are inherently three-dimensional and
+      aren't handled by this page at all; they're planned as a separate viewer built from
+      equilibria precomputed offline (VMEC/DESC) rather than solved live in-browser.
+    </p>
+
+    <h3>References</h3>
+    <ul>
+      <li>L.S. Solov'ev, "The theory of hydromagnetic stability of toroidal plasma configurations" (1968)</li>
+      <li>J.P. Freidberg, <em>Ideal Magnetohydrodynamics</em></li>
+      <li>A.J. Cerfon &amp; J.P. Freidberg, "One size fits all analytic solutions to the Grad–Shafranov equation" (2010)</li>
+      <li>Real free/fixed-boundary solvers this mirrors in spirit: FreeGS, CHEASE, EFIT</li>
+    </ul>
+
+    <p class="dependencies">No dependencies, no build step, no backend, nothing sent anywhere.</p>
+  </div>
+</section>
+
+<footer>
+  <p>eigenflux — inspired by <a href="https://baselashraf81.github.io/eigendrum/" target="_blank" rel="noopener">eigendrum</a>.</p>
+</footer>
+
+<script type="module" src="src/app/main.js"></script>
+</body>
+</html>
