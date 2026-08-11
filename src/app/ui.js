@@ -80,6 +80,16 @@ export function wireHowItWorks(toggleEl, panelEl) {
   });
 }
 
+// Small inline "how X works" toggle for sidebar preset groups: hidden by default, expands in
+// place (same [hidden]-toggling idea as the custom-shape panel, generalized for reuse) so each
+// section can carry a fuller explanation without the sidebar always paying for its height.
+export function wireCollapsible(toggleEl, panelEl) {
+  toggleEl.addEventListener("click", () => {
+    panelEl.hidden = !panelEl.hidden;
+    toggleEl.setAttribute("aria-expanded", String(!panelEl.hidden));
+  });
+}
+
 // Small popover dropdown (Variables / FAQ glossaries): toggles open on click, closes on an
 // outside click or Escape -- the extra behavior a floating menu needs that the inline
 // how-it-works panel above doesn't (that one never needs to auto-close).

@@ -11,7 +11,15 @@ import { compileExpr } from "../math/exprParser.js";
 import { renderEquilibrium } from "./render.js";
 import { renderShotChart } from "./shotChart.js";
 import { createTokamakViewer } from "./tokamak3d.js";
-import { buildPresetButtons, setActive, wireHowItWorks, wireDropdown, wireKeyboardShortcuts, buildFuelGauges } from "./ui.js";
+import {
+  buildPresetButtons,
+  setActive,
+  wireHowItWorks,
+  wireDropdown,
+  wireCollapsible,
+  wireKeyboardShortcuts,
+  buildFuelGauges,
+} from "./ui.js";
 import { wireThemeToggle } from "./theme.js";
 import {
   formatTime,
@@ -228,12 +236,11 @@ customShapeToggle.addEventListener("click", () => {
   }
 });
 
-const reactorHelpToggle = document.getElementById("reactor-help-toggle");
-const reactorHelpPanel = document.getElementById("reactor-help-panel");
-reactorHelpToggle.addEventListener("click", () => {
-  reactorHelpPanel.hidden = !reactorHelpPanel.hidden;
-  reactorHelpToggle.setAttribute("aria-expanded", String(!reactorHelpPanel.hidden));
-});
+// Small "how X works" collapsibles, one per sidebar section -- same [hidden]-toggling
+// pattern as the custom-shape panel above, generalized via wireCollapsible (src/app/ui.js).
+for (const name of ["reactor", "operating-point", "shape", "steady-state", "fuel", "energy-capture"]) {
+  wireCollapsible(document.getElementById(`${name}-help-toggle`), document.getElementById(`${name}-help-panel`));
+}
 
 customShapeInput.addEventListener("keydown", (e) => {
   if (e.key === "Enter") {
