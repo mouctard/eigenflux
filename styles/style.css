@@ -310,6 +310,35 @@ canvas {
   margin-top: 0.15rem;
 }
 
+.legend {
+  margin-top: 0.8rem;
+}
+
+.legend-row {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.legend-bar {
+  flex: 1;
+  height: 10px;
+  border-radius: 5px;
+  border: 1px solid var(--line);
+}
+
+.legend-end-label {
+  font-size: 0.72rem;
+  color: var(--muted);
+  flex: none;
+}
+
+.legend-caption {
+  margin-top: 0.3rem;
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
 .viewer3d {
   width: 100%;
   max-width: 640px;

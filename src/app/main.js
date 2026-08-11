@@ -6,10 +6,13 @@ import { FUSION_OPERATING_POINTS, E_DT_JOULES } from "../fusion/presets.js";
 import { renderEquilibrium } from "./render.js";
 import { buildPresetButtons, setActive, wireHowItWorks, wireKeyboardShortcuts } from "./ui.js";
 import { formatTime, formatPower, formatEnergy, formatRate, formatDensity } from "./format.js";
+import { paintLegendBar } from "./legend.js";
 
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 const statusEl = document.getElementById("status");
+
+paintLegendBar(document.getElementById("pressure-legend"));
 const meshToggle = document.getElementById("mesh-toggle");
 
 const worker = new Worker(new URL("../worker/solver.worker.js", import.meta.url), { type: "module" });

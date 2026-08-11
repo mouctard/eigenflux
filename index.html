@@ -53,6 +53,15 @@
     <canvas id="canvas" width="640" height="640"></canvas>
     <p id="status" class="status">Solving…</p>
 
+    <div class="legend">
+      <div class="legend-row">
+        <span class="legend-end-label">Edge</span>
+        <div class="legend-bar" id="pressure-legend"></div>
+        <span class="legend-end-label">Core</span>
+      </div>
+      <div class="legend-caption">Fill color = local pressure (edge → core, low → high)</div>
+    </div>
+
     <div class="reactor-readout">
       <div class="fuel-gauges">
         <div class="gauge">

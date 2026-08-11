@@ -67,7 +67,9 @@ export function createViewer(container) {
 
     surfaces.forEach((surface, i) => {
       const geo = buildGeometry(surface, nTheta, nZeta);
-      const t = i / Math.max(1, surfaces.length - 1);
+      // i=0 is the innermost surface, i=length-1 the outer boundary -- flip so color
+      // follows the same hot-core/cool-edge convention as the tokamak page.
+      const t = 1 - i / Math.max(1, surfaces.length - 1);
       const [r, g, b] = colormapRGB(t);
       const isOutermost = i === surfaces.length - 1;
       const material = new THREE.MeshStandardMaterial({

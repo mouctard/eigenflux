@@ -1,7 +1,7 @@
 // Canvas rendering: pressure colormap (flat-shaded triangles) + flux-surface contours +
 // boundary outline + magnetic-axis marker.
 import { contoursForLevels } from "./contour.js";
-import { colormap } from "./colormap.js";
+import { colormap, colormapRGB } from "./colormap.js";
 
 function fitTransform(mesh, width, height, marginFrac = 0.08) {
   let minR = Infinity, maxR = -Infinity, minZ = Infinity, maxZ = -Infinity;
@@ -105,10 +105,13 @@ function drawGlow(ctx, width, height, cx, cy, { powerLevel, pulsePhase }) {
   const radius = Math.min(width, height) * (0.32 + 0.34 * level) * pulse;
   const alpha = 0.22 + 0.4 * level * pulse;
 
+  const [hotR, hotG, hotB] = colormapRGB(1); // bright yellow, the colormap's hot end
+  const [midR, midG, midB] = colormapRGB(0.85); // yellow-orange
+
   const gradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.max(radius, 1));
-  gradient.addColorStop(0, `rgba(255, 236, 179, ${alpha})`);
-  gradient.addColorStop(0.4, `rgba(252, 141, 44, ${alpha * 0.7})`);
-  gradient.addColorStop(1, "rgba(252, 141, 44, 0)");
+  gradient.addColorStop(0, `rgba(${hotR}, ${hotG}, ${hotB}, ${alpha})`);
+  gradient.addColorStop(0.4, `rgba(${midR}, ${midG}, ${midB}, ${alpha * 0.7})`);
+  gradient.addColorStop(1, `rgba(${midR}, ${midG}, ${midB}, 0)`);
 
   ctx.save();
   ctx.globalCompositeOperation = "screen";
