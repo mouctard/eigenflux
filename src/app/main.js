@@ -42,9 +42,13 @@ function resizeCanvas() {
   canvas.width = size;
   canvas.height = size;
 }
+let resizeTimer = null;
 window.addEventListener("resize", () => {
-  resizeCanvas();
-  solve();
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => {
+    resizeCanvas();
+    solve();
+  }, 150);
 });
 
 worker.onmessage = (e) => {
