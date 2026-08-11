@@ -30,11 +30,62 @@
         Show mesh
       </label>
     </div>
+    <div class="preset-group">
+      <h2>Reactor</h2>
+      <div class="reactor-buttons">
+        <button id="burn-toggle" type="button" class="reactor-btn">▶ Play</button>
+        <button id="burn-reset" type="button" class="reactor-btn reactor-btn-ghost">Reset</button>
+      </div>
+      <div id="burn-mode-presets" class="preset-list"></div>
+      <label class="speed-label">
+        Speed
+        <select id="burn-speed">
+          <option value="1">1×</option>
+          <option value="5">5×</option>
+          <option value="10" selected>10×</option>
+          <option value="20">20×</option>
+        </select>
+      </label>
+    </div>
   </section>
 
   <section class="canvas-wrap">
     <canvas id="canvas" width="640" height="640"></canvas>
     <p id="status" class="status">Solving…</p>
+
+    <div class="reactor-readout">
+      <div class="fuel-gauges">
+        <div class="gauge">
+          <div class="gauge-label"><span class="gauge-dot gauge-dot-d"></span>Deuterium <span id="d-pct">100%</span></div>
+          <div class="gauge-track"><div id="d-fill" class="gauge-fill gauge-fill-d"></div></div>
+          <div class="gauge-sub" id="d-density">—</div>
+        </div>
+        <div class="gauge">
+          <div class="gauge-label"><span class="gauge-dot gauge-dot-t"></span>Tritium <span id="t-pct">100%</span></div>
+          <div class="gauge-track"><div id="t-fill" class="gauge-fill gauge-fill-t"></div></div>
+          <div class="gauge-sub" id="t-density">—</div>
+        </div>
+      </div>
+
+      <div class="stat-row">
+        <div class="stat-tile">
+          <div class="stat-value" id="stat-time">0.0 s</div>
+          <div class="stat-label">elapsed (sim.)</div>
+        </div>
+        <div class="stat-tile">
+          <div class="stat-value" id="stat-power">0 MW</div>
+          <div class="stat-label">fusion power</div>
+        </div>
+        <div class="stat-tile">
+          <div class="stat-value" id="stat-energy">0 MJ</div>
+          <div class="stat-label">energy produced</div>
+        </div>
+        <div class="stat-tile">
+          <div class="stat-value" id="stat-rate">0/s</div>
+          <div class="stat-label">reaction rate</div>
+        </div>
+      </div>
+    </div>
   </section>
 </main>
 
@@ -109,13 +160,44 @@
       calibrated to real pressures or currents in pascals or amperes.
     </p>
 
+    <h3>Live fuel burn</h3>
+    <p>
+      Press <strong>Play</strong> to run a real D-T burn calculation on top of the solved
+      equilibrium: the standard <strong>0D power-balance model</strong> used for reactor
+      scoping (the same category of calculation behind the Lawson criterion), not a scripted
+      animation. Reactivity <code>&lt;σv&gt;(T)</code> uses the Bosch &amp; Hale (1992)
+      parametrization; plasma volume is computed from the actual solved mesh (Pappus's
+      theorem per triangle, treating R,Z as meters); each D-T reaction releases 17.6 MeV
+      (3.5 MeV alpha + 14.1 MeV neutron). <strong>Deplete</strong> mode has no refueling —
+      <code>dn/dt = -&lt;σv&gt;n²</code> — which has an exact closed-form solution
+      <code>n(t) = n₀/(1+n₀&lt;σv&gt;t)</code>, so power and cumulative energy are evaluated
+      directly from elapsed time with no per-frame integration to accumulate error.
+      <strong>Sustained</strong> mode refuels exactly as fast as fuel burns, holding density
+      (and power) constant — real reactors need continuous pellet injection for exactly this
+      reason, since natural burn-down timescales at these densities are tens of seconds to
+      minutes, not hours.
+    </p>
+    <p>
+      Temperature and initial fuel density are illustrative, reactor-ballpark operating
+      points assigned per steady-state preset (roughly 6–15 keV, ~0.6–1.1×10²⁰ m⁻³ — in
+      ITER's target range), <strong>not</strong> derived from the solver's arbitrary-unit
+      pressure profile amplitudes; the equilibrium shape itself stays the already-solved
+      static one rather than being re-solved as fuel depletes. "Energy produced" is a
+      running tally of fusion output, not a Q-factor netted against input heating power or
+      confinement losses — that would need transport/confinement-time modeling this page
+      doesn't attempt.
+    </p>
+
     <h3>Not in this first pass</h3>
     <p>
       Safety-factor (q) profiles and rational-surface resonances — the direct fusion analog
       of "striking a resonant mode" — need flux-surface-averaged line integrals not yet
       implemented here. <strong>Stellarators</strong> are inherently three-dimensional and
-      aren't handled by this page at all; they're planned as a separate viewer built from
-      equilibria precomputed offline (VMEC/DESC) rather than solved live in-browser.
+      aren't handled by this page at all; they're a separate viewer built from equilibria
+      precomputed offline (VMEC/DESC) rather than solved live in-browser — see the
+      <a href="stellarator.html">3D stellarator viewer</a>. The burn model doesn't re-solve
+      the equilibrium as pressure drops, doesn't evolve temperature, and doesn't account for
+      input heating power or energy confinement time.
     </p>
 
     <h3>References</h3>
@@ -123,6 +205,7 @@
       <li>L.S. Solov'ev, "The theory of hydromagnetic stability of toroidal plasma configurations" (1968)</li>
       <li>J.P. Freidberg, <em>Ideal Magnetohydrodynamics</em></li>
       <li>A.J. Cerfon &amp; J.P. Freidberg, "One size fits all analytic solutions to the Grad–Shafranov equation" (2010)</li>
+      <li>H.-S. Bosch &amp; G.M. Hale, "Improved formulas for fusion cross-sections and thermal reactivities," Nucl. Fusion 32, 611 (1992)</li>
       <li>Real free/fixed-boundary solvers this mirrors in spirit: FreeGS, CHEASE, EFIT</li>
     </ul>
 

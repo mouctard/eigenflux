@@ -23,7 +23,7 @@ function fitTransform(mesh, width, height, marginFrac = 0.08) {
 }
 
 export function renderEquilibrium(ctx, canvas, mesh, psi, pressureField, psiAxis, opts = {}) {
-  const { showMesh = false } = opts;
+  const { showMesh = false, glow = null } = opts;
   const { width, height } = canvas;
   const toPx = fitTransform(mesh, width, height);
 
@@ -53,6 +53,12 @@ export function renderEquilibrium(ctx, canvas, mesh, psi, pressureField, psiAxis
     }
   }
 
+  let axisIdx = 0;
+  for (let i = 1; i < psi.length; i++) if (psi[i] > psi[axisIdx]) axisIdx = i;
+  const [ax, ay] = toPx(mesh.nodes[axisIdx]);
+
+  if (glow) drawGlow(ctx, width, height, ax, ay, glow);
+
   const nLevels = 12;
   const levels = [];
   for (let k = 1; k <= nLevels; k++) levels.push((psiAxis * k) / (nLevels + 1));
@@ -81,11 +87,34 @@ export function renderEquilibrium(ctx, canvas, mesh, psi, pressureField, psiAxis
   ctx.closePath();
   ctx.stroke();
 
-  let axisIdx = 0;
-  for (let i = 1; i < psi.length; i++) if (psi[i] > psi[axisIdx]) axisIdx = i;
-  const [ax, ay] = toPx(mesh.nodes[axisIdx]);
   ctx.fillStyle = "#111111";
   ctx.beginPath();
   ctx.arc(ax, ay, 3, 0, 2 * Math.PI);
   ctx.fill();
+}
+
+// Soft "hot core" glow, centered on the magnetic axis, modulated by the current fusion
+// power level (0..1, normalized to initial power) and a slow pulse -- the reaction-rate
+// visual tie-in. Drawn under the contour lines so it reads as a glow, not an occlusion.
+function drawGlow(ctx, width, height, cx, cy, { powerLevel, pulsePhase }) {
+  const level = Math.max(0, Math.min(1, powerLevel));
+  const pulse = 0.7 + 0.3 * Math.sin(pulsePhase);
+  // Sized to extend past the already-bright core into the darker mid-radius flux
+  // surfaces, where a screen-blended warm glow actually reads as animated -- blending
+  // more warm-on-warm at the core center barely changes anything visually.
+  const radius = Math.min(width, height) * (0.32 + 0.34 * level) * pulse;
+  const alpha = 0.22 + 0.4 * level * pulse;
+
+  const gradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.max(radius, 1));
+  gradient.addColorStop(0, `rgba(255, 236, 179, ${alpha})`);
+  gradient.addColorStop(0.4, `rgba(252, 141, 44, ${alpha * 0.7})`);
+  gradient.addColorStop(1, "rgba(252, 141, 44, 0)");
+
+  ctx.save();
+  ctx.globalCompositeOperation = "screen";
+  ctx.fillStyle = gradient;
+  ctx.beginPath();
+  ctx.arc(cx, cy, Math.max(radius, 1), 0, 2 * Math.PI);
+  ctx.fill();
+  ctx.restore();
 }

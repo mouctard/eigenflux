@@ -4,6 +4,8 @@
   --muted: #6a6a6a;
   --line: #d8d8d3;
   --accent: #1a1a1a;
+  --fuel-d: #0891b2;
+  --fuel-t: #e11d48;
 }
 
 * {
@@ -156,6 +158,156 @@ canvas {
   font-size: 0.82rem;
   color: var(--muted);
   font-variant-numeric: tabular-nums;
+}
+
+.reactor-buttons {
+  display: flex;
+  gap: 0.4rem;
+  margin-bottom: 0.5rem;
+}
+
+.reactor-btn {
+  flex: 1;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--line);
+  background: var(--accent);
+  color: #fff;
+  border-radius: 6px;
+  font-size: 0.86rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: opacity 0.12s ease;
+}
+
+.reactor-btn:hover {
+  opacity: 0.85;
+}
+
+.reactor-btn-ghost {
+  background: #fff;
+  color: var(--fg);
+}
+
+.speed-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.82rem;
+  color: var(--muted);
+  margin-top: 0.6rem;
+}
+
+.speed-label select {
+  font-family: inherit;
+  font-size: 0.82rem;
+  padding: 0.2rem 0.4rem;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: #fff;
+  color: var(--fg);
+}
+
+.reactor-readout {
+  margin-top: 1.25rem;
+}
+
+.fuel-gauges {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.gauge-label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.82rem;
+  color: #333;
+  margin-bottom: 0.3rem;
+}
+
+.gauge-label span:last-child {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+
+.gauge-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  display: inline-block;
+  flex: none;
+}
+
+.gauge-dot-d {
+  background: var(--fuel-d);
+}
+
+.gauge-dot-t {
+  background: var(--fuel-t);
+}
+
+.gauge-track {
+  height: 10px;
+  border-radius: 5px;
+  background: #ecece6;
+  border: 1px solid var(--line);
+  overflow: hidden;
+}
+
+.gauge-fill {
+  height: 100%;
+  width: 100%;
+  border-radius: 5px 0 0 5px;
+  transition: width 0.25s linear;
+}
+
+.gauge-fill-d {
+  background: var(--fuel-d);
+}
+
+.gauge-fill-t {
+  background: var(--fuel-t);
+}
+
+.gauge-sub {
+  margin-top: 0.25rem;
+  font-size: 0.72rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.stat-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 0.6rem;
+  margin-top: 1rem;
+}
+
+.stat-tile {
+  border: 1px solid var(--line);
+  background: #fff;
+  border-radius: 8px;
+  padding: 0.6rem 0.7rem;
+}
+
+.stat-value {
+  font-size: 1.15rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--fg);
+  letter-spacing: -0.01em;
+}
+
+.stat-label {
+  font-size: 0.72rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-top: 0.15rem;
 }
 
 .viewer3d {
