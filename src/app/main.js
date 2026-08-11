@@ -298,19 +298,29 @@ meshToggle.addEventListener("change", () => {
   redraw();
 });
 
+// Returns whether the canvas's pixel size actually changed, so callers can skip work when it
+// didn't -- mobile browsers fire "resize" when the address bar/chrome collapses on scroll,
+// even though the container's width (what this canvas is sized from) hasn't moved at all.
 function resizeCanvas() {
   const rect = canvas.parentElement.getBoundingClientRect();
   const size = Math.max(320, Math.min(rect.width, 720));
+  if (canvas.width === size && canvas.height === size) return false;
   canvas.width = size;
   canvas.height = size;
+  return true;
 }
 let resizeTimer = null;
 window.addEventListener("resize", () => {
   clearTimeout(resizeTimer);
   resizeTimer = setTimeout(() => {
-    resizeCanvas();
-    solve();
-    renderBurnState(performance.now());
+    // Re-solving the equilibrium here was never actually necessary -- the Grad-Shafranov
+    // solve doesn't depend on the canvas's pixel size at all, only on shape/profile. Calling
+    // solve() on every resize needlessly round-tripped the worker AND (via
+    // rebuildBurnModel -> resetShot) reset the running shot -- on mobile, a page *scroll* can
+    // itself trigger a resize event (the browser chrome collapsing), so this used to stop
+    // playback just from scrolling down to look at the dashboard. A plain redraw() from the
+    // already-solved mesh is all a resize ever needed.
+    if (resizeCanvas()) redraw();
   }, 150);
 });
 

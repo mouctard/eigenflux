@@ -77,6 +77,47 @@
     <div class="dropdown">
       <button id="faq-toggle" type="button" class="dropdown-toggle" aria-expanded="false">FAQ ▾</button>
       <div id="faq-panel" class="dropdown-panel">
+        <p class="faq-q">What does a fusion plant operator actually do — and how do I simulate that here?</p>
+        <p class="faq-a">
+          A shift roughly breaks into five real jobs, each mapped to a control on this page:
+        </p>
+        <p class="faq-a">
+          <strong>1. Configure the scenario.</strong> Real operators pick a plasma shape,
+          pressure/current profile, and fuel before a shot. Here: the <strong>Shape</strong>,
+          <strong>Steady state</strong>, and <strong>Fuel</strong> presets in the sidebar —
+          try switching between them and watch the 2D slice and diagnostics badges change.
+        </p>
+        <p class="faq-a">
+          <strong>2. Set the operating point.</strong> Real operators choose target field,
+          current, and heating power for the shot. Here: the <strong>Operating point</strong>
+          preset (JET-scale / DIII-D-scale) sets B<sub>t</sub>, I<sub>p</sub>, and the
+          auxiliary heating powers everything else derives from.
+        </p>
+        <p class="faq-a">
+          <strong>3. Ignite and ramp.</strong> Real operators energize the magnets and ramp up
+          current and heating together. Here: <strong>Play</strong> — watch the whole
+          dashboard visibly rise over the ~1.4s ramp (slow the speed selector to 0.1×–0.5× to
+          see it in detail).
+        </p>
+        <p class="faq-a">
+          <strong>4. Monitor against limits.</strong> This is most of a real shift: watching
+          β<sub>N</sub> against the Troyon stability limit, q<sub>95</sub> against the
+          disruption boundary, H<sub>98</sub> against the confinement baseline, and divertor
+          heat flux against engineering limits — all shown live here with their real target
+          ranges (hover the β<sub>N</sub>/q<sub>95</sub> badges, or see the <strong>H<sub>98</sub></strong>
+          and divertor tiles' target subtext).
+        </p>
+        <p class="faq-a">
+          <strong>5. End the shot.</strong> Real operators de-energize the field and log the
+          shot. Here: <strong>Reset</strong> — ramps back down and zeros the clock, so the
+          next Play starts a fresh shift.
+        </p>
+        <p class="faq-a">
+          Every one of these is genuinely clickable, not decorative — try changing the
+          Operating point <em>while</em> a shot is playing, or switching Shape/Steady state
+          between shots, and watch how it ripples through the live numbers rather than just
+          reading about it.
+        </p>
         <p class="faq-q">How much electricity does an average U.S. home use in a year?</p>
         <p class="faq-a">About <strong>10,500 kWh/year</strong> (roughly 900 kWh/month), per the U.S. Energy Information Administration's residential survey data — the reference figure this page uses below.</p>
         <p class="faq-q">How many homes could this plant's current output power?</p>
@@ -96,46 +137,6 @@
 
 <main>
   <section class="controls">
-    <div class="preset-group">
-      <h2>Shape</h2>
-      <div id="shape-presets" class="preset-list"></div>
-      <button id="custom-shape-toggle" type="button" class="ghost-toggle">✎ Custom (equation) <span class="kbd-hint">4</span></button>
-      <div id="custom-shape-panel" class="custom-shape-panel" hidden>
-        <label class="custom-shape-label">
-          r(θ) = <input id="custom-shape-input" type="text" value="1 + 0.3*cos(3*theta)" spellcheck="false" autocomplete="off">
-        </label>
-        <div id="custom-shape-error" class="custom-shape-error"></div>
-        <div class="custom-shape-hint">Press Enter to solve. Functions: sin cos tan sqrt abs exp, constant pi.</div>
-      </div>
-    </div>
-    <div class="preset-group">
-      <h2>Steady state</h2>
-      <div id="profile-presets" class="preset-list"></div>
-    </div>
-    <div class="preset-group">
-      <h2>Fuel</h2>
-      <div id="fuel-presets" class="preset-list"></div>
-    </div>
-    <div class="preset-group">
-      <h2>Energy capture</h2>
-      <div id="capture-presets" class="preset-list"></div>
-    </div>
-    <div class="preset-group">
-      <label class="mesh-toggle-label">
-        <input type="checkbox" id="mesh-toggle">
-        Show mesh
-      </label>
-    </div>
-    <div class="preset-group">
-      <h2>Operating point</h2>
-      <div id="operating-point-presets" class="preset-list"></div>
-      <p class="reactor-caption">
-        Real-unit toroidal field, plasma current, and auxiliary heating actuators — can't be
-        derived from the solver's own arbitrary-unit profile amplitudes, so these are new
-        real-unit inputs a preset selects, same epistemic tier as the burn model's existing
-        temperature/density operating points below.
-      </p>
-    </div>
     <div class="preset-group">
       <h2>Reactor</h2>
       <p class="reactor-caption shift-brief">
@@ -183,13 +184,42 @@
       </p>
     </div>
     <div class="preset-group">
-      <h2>Timeframe</h2>
-      <div id="timeframe-presets" class="preset-list"></div>
+      <h2>Operating point</h2>
+      <div id="operating-point-presets" class="preset-list"></div>
       <p class="reactor-caption">
-        Projects the chart below from the closed-form <code>E(t)</code> directly — no need
-        to actually run the sim for hours. The dashed line is a real reference figure (not
-        computed from this page's arbitrary-unit solver state) for scale.
+        Real-unit toroidal field, plasma current, and auxiliary heating actuators — can't be
+        derived from the solver's own arbitrary-unit profile amplitudes, so these are new
+        real-unit inputs a preset selects, same epistemic tier as the burn model's existing
+        temperature/density operating points below.
       </p>
+    </div>
+    <div class="preset-group">
+      <h2>Shape</h2>
+      <div id="shape-presets" class="preset-list"></div>
+      <button id="custom-shape-toggle" type="button" class="ghost-toggle">✎ Custom (equation) <span class="kbd-hint">4</span></button>
+      <div id="custom-shape-panel" class="custom-shape-panel" hidden>
+        <label class="custom-shape-label">
+          r(θ) = <input id="custom-shape-input" type="text" value="1 + 0.3*cos(3*theta)" spellcheck="false" autocomplete="off">
+        </label>
+        <div id="custom-shape-error" class="custom-shape-error"></div>
+        <div class="custom-shape-hint">Press Enter to solve. Functions: sin cos tan sqrt abs exp, constant pi.</div>
+      </div>
+      <label class="mesh-toggle-label">
+        <input type="checkbox" id="mesh-toggle">
+        Show mesh
+      </label>
+    </div>
+    <div class="preset-group">
+      <h2>Steady state</h2>
+      <div id="profile-presets" class="preset-list"></div>
+    </div>
+    <div class="preset-group">
+      <h2>Fuel</h2>
+      <div id="fuel-presets" class="preset-list"></div>
+    </div>
+    <div class="preset-group">
+      <h2>Energy capture</h2>
+      <div id="capture-presets" class="preset-list"></div>
     </div>
   </section>
 
@@ -257,11 +287,6 @@
           <div class="stat-value" id="stat-net-energy">+0 kJ</div>
           <div class="stat-label">net (out − activation)</div>
         </div>
-      </div>
-
-      <div class="burn-chart-wrap">
-        <canvas id="burn-chart" width="640" height="220"></canvas>
-        <p id="burn-chart-caption" class="burn-chart-caption"></p>
       </div>
 
       <div class="diagnostics-section">
@@ -355,6 +380,20 @@
         <div class="shot-chart-wrap">
           <canvas id="shot-chart" width="640" height="260"></canvas>
         </div>
+      </div>
+
+      <div class="diagnostics-section">
+        <h3 class="diagnostics-heading">Energy projection</h3>
+        <div id="timeframe-presets" class="preset-list preset-list-row"></div>
+        <div class="burn-chart-wrap">
+          <canvas id="burn-chart" width="640" height="220"></canvas>
+          <p id="burn-chart-caption" class="burn-chart-caption"></p>
+        </div>
+        <p class="reactor-caption">
+          Projects the chart above from the closed-form <code>E(t)</code> directly — no need
+          to actually run the sim for hours. The dashed line is a real reference figure (not
+          computed from this page's arbitrary-unit solver state) for scale.
+        </p>
       </div>
 
       <a id="story-link" href="story.html" target="_blank" rel="noopener" class="story-link">

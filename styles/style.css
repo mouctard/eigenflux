@@ -137,6 +137,16 @@ main {
   gap: 0.4rem;
 }
 
+.preset-list-row {
+  flex-direction: row;
+  flex-wrap: wrap;
+  margin-bottom: 0.75rem;
+}
+
+.preset-list-row .preset-btn {
+  flex: 0 1 auto;
+}
+
 .preset-btn {
   display: flex;
   align-items: center;

@@ -7,11 +7,13 @@
 // not a closed form.
 import { getCanvasPalette } from "./theme.js";
 
+// Unicode subscript letters (U+2090 block) stand in for <sub> here since canvas fillText
+// can't render HTML -- real subscript glyphs, not an underscore, same as everywhere else.
 const STRIPS = [
-  { key: "Ip_MA", label: "Ip (MA)", color: "#0891b2" },
-  { key: "betaN", label: "β_N", color: "#7c3aed" },
+  { key: "Ip_MA", label: "Iₚ (MA)", color: "#0891b2" },
+  { key: "betaN", label: "βₙ", color: "#7c3aed" },
   { key: "dAlpha", label: "D-α (a.u.)", color: "#e11d48" },
-  { key: "Wth_MJ", label: "W_th (MJ)", color: "#ea580c" },
+  { key: "Wth_MJ", label: "Wₜₕ (MJ)", color: "#ea580c" },
 ];
 
 export function renderShotChart(canvas, history, setpoints, windowSeconds) {
