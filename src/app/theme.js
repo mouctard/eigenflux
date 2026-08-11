@@ -18,8 +18,11 @@ export function setTheme(theme) {
 }
 
 // Wires a checkbox input (checked = light mode) to the theme, reflecting whatever the
-// anti-FOUC inline script already applied to <html> on load.
+// anti-FOUC inline script already applied to <html> on load. Guarded against a missing
+// element for the same reason as ui.js's wireDropdown -- an init-time helper dereferencing
+// its argument unconditionally is a single point of failure for everything wired after it.
 export function wireThemeToggle(inputEl) {
+  if (!inputEl) return;
   inputEl.checked = getTheme() === "light";
   inputEl.addEventListener("change", () => {
     setTheme(inputEl.checked ? "light" : "dark");

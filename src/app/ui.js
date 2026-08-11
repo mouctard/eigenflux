@@ -84,7 +84,13 @@ export function buildFuelGauges(container, fuel) {
 // closing a floating dropdown (Variables/FAQ) when the user clicks elsewhere or presses
 // Escape. If this listener never fires for some reason, the dropdown still opens and closes
 // perfectly fine via its own <summary> -- this only ever adds convenience, never removes it.
+// Guarded against a missing element on purpose: this used to dereference detailsEl directly,
+// so a single mismatched id (e.g. a stale cached copy of one of index.html/main.js loaded
+// alongside a fresh copy of the other) threw synchronously here and silently aborted the rest
+// of main.js's top-level script -- including wiring the Play button, much further down the
+// file. No init-time helper in this module should ever be able to do that again.
 export function wireDropdown(detailsEl) {
+  if (!detailsEl) return;
   document.addEventListener("click", (e) => {
     if (detailsEl.open && !detailsEl.contains(e.target)) detailsEl.open = false;
   });

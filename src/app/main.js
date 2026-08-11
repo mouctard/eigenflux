@@ -236,34 +236,47 @@ customShapeInput.addEventListener("keydown", (e) => {
 });
 customShapeInput.addEventListener("blur", applyCustomShape);
 
-wireDropdown(document.getElementById("variables-dropdown"));
-wireDropdown(document.getElementById("faq-dropdown"));
+// This whole block is UI polish (dropdowns, theme toggle, keyboard shortcuts) layered on top
+// of the actually-essential reactor controls wired further down. Every helper it calls is
+// already null-safe on its own, but it's wrapped here too, on purpose: nothing in this tier
+// should ever be able to throw and silently abort the rest of this module's top-level script
+// (module code runs as one synchronous pass, so an uncaught exception here would skip every
+// statement after it -- including wiring the Play button). If something in here does fail, it
+// fails loud in the console and the page keeps working; it doesn't fail silent and inert.
+try {
+  wireDropdown(document.getElementById("variables-dropdown"));
+  wireDropdown(document.getElementById("faq-dropdown"));
 
-const themeToggleInput = document.getElementById("theme-toggle-input");
-const themeToggleText = document.getElementById("theme-toggle-text");
-wireThemeToggle(themeToggleInput);
-themeToggleText.textContent = themeToggleInput.checked ? "Dark mode" : "Light mode";
-themeToggleInput.addEventListener("change", () => {
-  themeToggleText.textContent = themeToggleInput.checked ? "Dark mode" : "Light mode";
-  redraw();
-  renderBurnState(performance.now());
-});
+  const themeToggleInput = document.getElementById("theme-toggle-input");
+  const themeToggleText = document.getElementById("theme-toggle-text");
+  wireThemeToggle(themeToggleInput);
+  if (themeToggleInput && themeToggleText) {
+    themeToggleText.textContent = themeToggleInput.checked ? "Dark mode" : "Light mode";
+    themeToggleInput.addEventListener("change", () => {
+      themeToggleText.textContent = themeToggleInput.checked ? "Dark mode" : "Light mode";
+      redraw();
+      renderBurnState(performance.now());
+    });
+  }
 
-wireKeyboardShortcuts({
-  ...Object.fromEntries(SHAPE_HOTKEYS.map((k, i) => [k, () => shapeButtons[shapeKeys[i]].click()])),
-  [CUSTOM_SHAPE_HOTKEY]: () => {
-    customShapePanel.hidden = false;
-    customShapeInput.focus();
-    customShapeInput.select();
-    applyCustomShape();
-  },
-  ...Object.fromEntries(PROFILE_HOTKEYS.map((k, i) => [k, () => profileButtons[profileKeys[i]].click()])),
-  ...Object.fromEntries(FUEL_HOTKEYS.map((k, i) => [k, () => fuelButtons[fuelKeys[i]].click()])),
-  ...Object.fromEntries(CAPTURE_HOTKEYS.map((k, i) => [k, () => captureButtons[captureKeys[i]].click()])),
-  ...Object.fromEntries(
-    OPERATING_POINT_HOTKEYS.map((k, i) => [k, () => operatingPointButtons[operatingPointKeys[i]].click()])
-  ),
-});
+  wireKeyboardShortcuts({
+    ...Object.fromEntries(SHAPE_HOTKEYS.map((k, i) => [k, () => shapeButtons[shapeKeys[i]].click()])),
+    [CUSTOM_SHAPE_HOTKEY]: () => {
+      customShapePanel.hidden = false;
+      customShapeInput.focus();
+      customShapeInput.select();
+      applyCustomShape();
+    },
+    ...Object.fromEntries(PROFILE_HOTKEYS.map((k, i) => [k, () => profileButtons[profileKeys[i]].click()])),
+    ...Object.fromEntries(FUEL_HOTKEYS.map((k, i) => [k, () => fuelButtons[fuelKeys[i]].click()])),
+    ...Object.fromEntries(CAPTURE_HOTKEYS.map((k, i) => [k, () => captureButtons[captureKeys[i]].click()])),
+    ...Object.fromEntries(
+      OPERATING_POINT_HOTKEYS.map((k, i) => [k, () => operatingPointButtons[operatingPointKeys[i]].click()])
+    ),
+  });
+} catch (e) {
+  console.error("Non-essential UI wiring (dropdowns/theme/shortcuts) failed:", e);
+}
 
 meshToggle.addEventListener("change", () => {
   state.showMesh = meshToggle.checked;
