@@ -6,7 +6,7 @@
 // gradients that P1 elements produce, and consistent between the stiffness and load terms.
 import { COOMatrix } from "../math/sparse.js";
 
-function triGeometry(nodes, tri) {
+export function triGeometry(nodes, tri) {
   const [i, j, k] = tri;
   const [R1, Z1] = nodes[i];
   const [R2, Z2] = nodes[j];

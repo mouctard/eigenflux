@@ -54,6 +54,16 @@
       </label>
     </div>
     <div class="preset-group">
+      <h2>Operating point</h2>
+      <div id="operating-point-presets" class="preset-list"></div>
+      <p class="reactor-caption">
+        Real-unit toroidal field, plasma current, and auxiliary heating actuators — can't be
+        derived from the solver's own arbitrary-unit profile amplitudes, so these are new
+        real-unit inputs a preset selects, same epistemic tier as the burn model's existing
+        temperature/density operating points below.
+      </p>
+    </div>
+    <div class="preset-group">
       <h2>Reactor</h2>
       <div class="reactor-buttons">
         <button id="burn-toggle" type="button" class="reactor-btn">▶ Play</button>
@@ -76,14 +86,16 @@
       <p class="reactor-caption">
         <strong>Play</strong> energizes the confining magnetic field (real reference cost:
         ITER's 51 GJ magnet system, charged once per shot) and starts accelerating/heating
-        the fuel ions. <strong>Reset</strong> de-energizes the field and ends the shot — fuel,
-        clock, and the activation cost all return to zero, so the next Play pays it again.
-        <strong>Deplete</strong> burns fuel down following <code>n(t) = n₀/(1 + n₀⟨σv⟩t)</code>
-        — real depletion timescales are tens of seconds to minutes at 1×, so try a higher
-        speed to see it happen quickly. <strong>Sustained</strong> refuels exactly as fast
-        as fuel burns, holding density constant. The plasma visibly fades as fuel depletes,
-        and its pulsing glow tracks instantaneous fusion power — both above and in the 3D
-        view below, all tied to the same numbers.
+        the fuel ions — the field, current, and heating powers ramp up over about 1.4s (see
+        "The shot" below), visibly driving the new diagnostics dashboard up with them.
+        <strong>Reset</strong> de-energizes the field (ramping back down) and ends the shot —
+        fuel, clock, and the activation cost all return to zero, so the next Play pays it
+        again. <strong>Deplete</strong> burns fuel down following
+        <code>n(t) = n₀/(1 + n₀⟨σv⟩t)</code> — real depletion timescales are tens of seconds to
+        minutes at 1×, so try a higher speed to see it happen quickly. <strong>Sustained</strong>
+        refuels exactly as fast as fuel burns, holding density constant. The plasma visibly
+        fades as fuel depletes, and its pulsing glow tracks instantaneous fusion power — both
+        above and in the 3D view below, all tied to the same numbers.
       </p>
     </div>
     <div class="preset-group">
@@ -108,6 +120,25 @@
         <span class="legend-end-label">Core</span>
       </div>
       <div class="legend-caption">Fill color = local pressure (edge → core, low → high)</div>
+    </div>
+
+    <div class="slice-readout" id="slice-readout">
+      <div class="slice-badge">
+        <span class="slice-badge-value" id="slice-bt">0.00 T</span>
+        <span class="slice-badge-label">Bt</span>
+      </div>
+      <div class="slice-badge slice-badge-mode" id="slice-mode-badge">
+        <span class="slice-badge-value" id="slice-mode">—</span>
+        <span class="slice-badge-label">regime</span>
+      </div>
+      <div class="slice-badge">
+        <span class="slice-badge-value" id="slice-betan">0.00</span>
+        <span class="slice-badge-label">β_N</span>
+      </div>
+      <div class="slice-badge">
+        <span class="slice-badge-value" id="slice-q95">0.00</span>
+        <span class="slice-badge-label">q_95</span>
+      </div>
     </div>
 
     <div class="reactor-readout">
@@ -147,6 +178,93 @@
       <div class="burn-chart-wrap">
         <canvas id="burn-chart" width="640" height="220"></canvas>
         <p id="burn-chart-caption" class="burn-chart-caption"></p>
+      </div>
+
+      <div class="diagnostics-section">
+        <h3 class="diagnostics-heading">Plasma parameters</h3>
+        <div class="stat-row">
+          <div class="stat-tile">
+            <div class="stat-value" id="diag-ip">0.00 MA</div>
+            <div class="stat-label">Ip</div>
+          </div>
+          <div class="stat-tile">
+            <div class="stat-value" id="diag-wth">0.0 MJ</div>
+            <div class="stat-label">W_th</div>
+          </div>
+          <div class="stat-tile">
+            <div class="stat-value" id="diag-h98">0.00</div>
+            <div class="stat-label">H98</div>
+          </div>
+          <div class="stat-tile">
+            <div class="stat-value" id="diag-te0">0.00 keV</div>
+            <div class="stat-label">Te0</div>
+          </div>
+          <div class="stat-tile">
+            <div class="stat-value" id="diag-ne">0×10⁰ m⁻³</div>
+            <div class="stat-label">n_e</div>
+          </div>
+          <div class="stat-tile">
+            <div class="stat-value" id="diag-taue">0.00 s</div>
+            <div class="stat-label">τ_E</div>
+          </div>
+          <div class="stat-tile">
+            <div class="stat-value" id="diag-li">0.00</div>
+            <div class="stat-label">l_i</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="diagnostics-section">
+        <h3 class="diagnostics-heading">Power and fusion</h3>
+        <div class="power-columns">
+          <div class="power-col">
+            <div class="power-col-label">Inputs</div>
+            <div class="power-row"><span>P_OH</span><span id="pw-oh">0.0 MW</span></div>
+            <div class="power-row"><span>P_NBI</span><span id="pw-nbi">0.0 MW</span></div>
+            <div class="power-row"><span>P_ECH</span><span id="pw-ech">0.0 MW</span></div>
+            <div class="power-row"><span>P_ICH</span><span id="pw-ich">0.0 MW</span></div>
+            <div class="power-row"><span>P_alpha</span><span id="pw-alpha">0.0 MW</span></div>
+          </div>
+          <div class="power-col">
+            <div class="power-col-label">Outputs</div>
+            <div class="power-row"><span>P_rad</span><span id="pw-rad">0.0 MW</span></div>
+            <div class="power-row"><span>P_loss</span><span id="pw-loss">0.0 MW</span></div>
+            <div class="power-row"><span>dW/dt</span><span id="pw-dwdt">0.0 MW</span></div>
+          </div>
+        </div>
+        <div class="power-totals">
+          <div><span>P_in</span><span id="pw-pin">0.0 MW</span></div>
+          <div><span>P_out</span><span id="pw-pout">0.0 MW</span></div>
+        </div>
+      </div>
+
+      <div class="diagnostics-section">
+        <h3 class="diagnostics-heading">Divertor <span class="illustrative-tag">illustrative</span></h3>
+        <div class="stat-row">
+          <div class="stat-tile">
+            <div class="stat-value" id="div-lambdaq">0.0 mm</div>
+            <div class="stat-label">λ_q</div>
+          </div>
+          <div class="stat-tile">
+            <div class="stat-value" id="div-fdet">0.00</div>
+            <div class="stat-label">f_det</div>
+          </div>
+          <div class="stat-tile">
+            <div class="stat-value" id="div-qi">0.0 MW/m²</div>
+            <div class="stat-label">q_i</div>
+          </div>
+          <div class="stat-tile">
+            <div class="stat-value" id="div-ts">0 °C</div>
+            <div class="stat-label">T_s</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="diagnostics-section">
+        <h3 class="diagnostics-heading">Shot trace</h3>
+        <div class="shot-chart-wrap">
+          <canvas id="shot-chart" width="640" height="260"></canvas>
+        </div>
       </div>
 
       <a id="story-link" href="story.html" target="_blank" rel="noopener" class="story-link">
@@ -392,18 +510,139 @@ D-³He: D + ³He → ⁴He(3.6 MeV) + p(14.7 MeV)           Q = 18.3 MeV   (aneu
       one-time activation cost, at the current fuel/capture/timeframe settings.
     </p>
 
+    <h3>Plasma diagnostics</h3>
+    <p>
+      Near the 2D slice and in the "Plasma parameters" panel below, a set of real JET/DIII-D-
+      style operational numbers are shown — <code>Bt</code>, <code>Ip</code>, an H-mode/L-mode
+      badge, <code>β_N</code>, <code>q_95</code>, <code>W_th</code>, <code>H98</code>,
+      <code>τ_E</code>, <code>l_i</code>. These sit on top of the arbitrary-unit solve above
+      via a new <strong>Operating point</strong> preset (real Tesla/MA/MW inputs — Bt, Ip, and
+      auxiliary heating powers — which can't be derived from the solver's own profile
+      amplitudes, so they're new inputs, same epistemic tier as the burn model's existing
+      temperature/density operating points). From there, most of what's shown is genuinely
+      computed, not hand-set:
+    </p>
+    <ul>
+      <li><strong>l_i</strong> (internal inductance) = ⟨B_θ²⟩<sub>volume</sub> / B_θ²(edge),
+        computed directly from the already-solved ψ field: B_θ ∝ |∇ψ|/R, with a constant
+        gradient per triangle from the same P1 shape-function coefficients
+        <code>assembleStiffness</code> already uses. Since B_θ is proportional to ∇ψ
+        everywhere, this <em>ratio</em> is invariant to ψ's arbitrary overall scale — genuinely
+        computable from the arbitrary-unit solve, no calibration needed. Checked against the
+        textbook l_i=0.5 result for a flat current-density profile
+        (<code>tools/validate_flux_diagnostics.mjs</code>), converging cleanly as mesh
+        resolution increases.</li>
+      <li><strong>W_th</strong> (thermal stored energy) = 3·n_e·T·V, the kinetic definition
+        (T_e=T_i=T, n_e≈n_i, the same single-temperature assumption the burn model's operating
+        points already make), using the already-computed real plasma volume
+        (Pappus's theorem, see "Live fuel burn") and the operating point's real n_e/T — real,
+        no new calibration.</li>
+      <li><strong>β_N</strong> follows from that same W_th: volume-averaged pressure
+        p̄ = (2/3)(W_th/V), β = p̄/(B_t²/2μ₀), β_N = β[%]·a[m]·B_t[T]/I_p[MA] — real, using the
+        new Bt/Ip inputs and the shape's own real minor radius.</li>
+      <li><strong>q_95</strong> uses Ampère's law to turn the new Ip input into a real poloidal
+        field at the edge (B_p(a) = μ₀I_p/2πa), combined with the standard large-aspect-ratio,
+        elongation-corrected safety factor q ≈ (2πa²B_t)/(μ₀R₀I_p) · (1+κ²)/2 (Wesson,
+        <em>Tokamaks</em>). This is an <em>approximation</em>, not the exact flux-surface-
+        averaged line integral at the 95%-flux surface — see "Not in this first pass".</li>
+      <li><strong>τ_E and H98</strong>: τ_E,actual = W_th/P_loss (the literal definition of
+        energy confinement time, using the power balance below) is compared against the
+        <strong>IPB98(y,2)</strong> ELMy H-mode scaling law — <code>τ_E = 0.0562 · I_p^0.93 ·
+        B_t^0.15 · n̄_e^0.41 · P_loss^-0.69 · R₀^1.97 · κ^0.78 · ε^0.58 · M^0.19</code> (ITER
+        Physics Basis / ITPA database) — and <strong>H98 = τ_E,actual / τ_E,IPB98</strong> is a
+        genuinely <em>computed</em> diagnostic ratio, exactly how it's reported for real shots,
+        not a dial the preset sets directly.</li>
+      <li><strong>H-mode / L-mode badge</strong>: compares the auxiliary heating power
+        (P_NBI+P_ECH+P_ICH) against the <strong>Martin08</strong> L-H transition threshold
+        scaling, <code>P_LH[MW] = 0.0488 · n̄_e[10²⁰m⁻³]^0.717 · B_t^0.803 · S[m²]^0.941 ·
+        (2/A_eff)</code>, using the plasma's real surface area (Pappus's theorem on the
+        boundary polyline, the same technique as the volume calculation, one level down).</li>
+      <li><strong>P_alpha</strong> reuses the burn model's own already-computed split —
+        <code>chargedFrac × P_fusion(t)</code> — from "Choosing a fuel", not a new estimate.</li>
+    </ul>
+    <p>
+      All the formulas above marked real were verified this session against independently
+      re-transcribed references or hand-worked arithmetic before shipping
+      (<code>tools/validate_diagnostics.mjs</code>, <code>tools/validate_flux_diagnostics.mjs</code>)
+      — see Verification-style checks throughout this panel for the project's general
+      discipline on that.
+    </p>
+
+    <h3>Power balance</h3>
+    <p>
+      The "Power and fusion" panel is a standard 0D power balance:
+      <code>P_heat = P_OH + P_NBI + P_ECH + P_ICH + P_alpha</code> (the auxiliary-heating
+      inputs from the Operating point preset, plus the reused P_alpha above);
+      <code>P_loss = P_heat − P_rad − dW/dt</code>; <code>P_in = P_heat</code>;
+      <code>P_out = P_rad + P_loss + dW/dt</code>. P_out sums to exactly P_in by construction
+      here — a real balance equation, not fitted to match any particular example shot's numbers
+      (which need not balance exactly). <code>dW/dt</code> is a genuine transient: a finite
+      difference of W_th, nonzero during the magnet/current ramp (see "The shot" below) and
+      ~0 at flat-top. <code>P_rad</code> is the one illustrative input feeding this otherwise-real
+      balance — this session couldn't verify a trustworthy Bremsstrahlung coefficient/unit
+      convention from source, so it uses an n_e²√T-shaped functional form calibrated to a
+      representative point rather than a checked formula, the same epistemic tier as the
+      divertor numbers below.
+    </p>
+
+    <h3>Divertor <span class="illustrative-tag">illustrative</span></h3>
+    <p>
+      λ_q, f_det, q_i, and T_s are <strong>not</strong> independently verified this session —
+      real SOL/divertor transport (detachment physics, target thermal response) is well beyond
+      this page's 0D scope. λ_q cites the functional <em>form</em> of the Eich et al. (2013
+      Nucl. Fusion) regression-#14 scaling (λ_q[mm] = 0.63·B_p,MP[T]<sup>−1.19</sup>, using the
+      Ampère's-law-derived edge field above) without independently re-deriving or checking its
+      coefficient against source data. q_i spreads the real P_loss over a wetted area
+      estimate (with an illustrative flux-expansion/spreading factor — real divertor targets
+      see a much larger footprint than the bare midplane mapping, or this would overshoot real
+      heat fluxes by ~100×). f_det and T_s are simple monotonic functions in the qualitatively
+      correct direction, each calibrated to a single representative reference point rather than
+      derived. Treat this section the way the energy-capture multipliers are already treated
+      elsewhere on this page: illustrative, literature-flavored, not load-bearing physics.
+    </p>
+
+    <h3>The shot</h3>
+    <p>
+      Press <strong>Play</strong> and the confining field doesn't just switch on: <code>Ip</code>,
+      <code>Bt</code>, and the auxiliary heating powers ramp up over about 1.4 seconds (real
+      time, independent of the fuel-burn clock's speed multiplier — a magnet/current ramp is a
+      hardware timescale, not a simulated-time one), the 3D coils brighten continuously with
+      it, and every diagnostic above — β_N, q_95, τ_E, H98, the power balance, the H-mode gate —
+      recomputes each frame from these ramping values, so the whole dashboard visibly rises
+      together rather than snapping on. <strong>Pause</strong> or <strong>Reset</strong> ramps
+      back down over about 1.1 seconds the same way, independently of the fuel-burn clock
+      (which still freezes/zeros exactly as before — see "Live fuel burn"). At flat-top, a
+      small deterministic texture (a couple of off-frequency sine waves, the same idiom as the
+      2D glow's pulse) is layered onto <code>Ip</code>, <code>W_th</code>, and a stylized
+      D-α trace with periodic ELM-like spikes, so the "Shot trace" strip chart settles around a
+      fixed value rather than sitting dead flat — an illustrative shot-trace texture, not a
+      turbulence simulation. That texture is deliberately kept out of <code>dW/dt</code>'s
+      finite difference (computed from a separate, unjittered trajectory), so the power balance
+      above stays a real ~0 at flat-top instead of amplifying cosmetic noise into a spurious
+      transient. The existing fusion-power/energy stat tiles above (from "Live fuel burn") keep
+      representing that already-validated closed form directly, unramped — the ramp modulates
+      the new real-unit diagnostics layered on top, not the underlying 0D burn physics. The
+      "Shot trace" chart renders in real time frame-by-frame (unlike the closed-form
+      energy-vs-time chart above it, which can sample any horizon instantly), so it's most
+      legible at lower speed multipliers.
+    </p>
+
     <h3>Not in this first pass</h3>
     <p>
-      Safety-factor (q) profiles and rational-surface resonances — the direct fusion analog
-      of "striking a resonant mode" — need flux-surface-averaged line integrals not yet
-      implemented here. <strong>Stellarators</strong> are inherently three-dimensional and
-      aren't handled by this page at all; they're a separate viewer built from equilibria
-      precomputed offline (VMEC/DESC) rather than solved live in-browser — see the
-      <a href="stellarator.html">3D stellarator viewer</a>. The burn model doesn't re-solve
-      the equilibrium as pressure drops, doesn't evolve temperature, and doesn't account for
-      input heating power or energy confinement time. D-³He's real side reactions (it's not
-      perfectly aneutronic in practice — some D-D branching still happens in a D-³He plasma)
-      aren't modeled; only the primary D+³He channel is.
+      The <strong>exact</strong> flux-surface-averaged line integral for q(ψ) — and full
+      safety-factor profiles / rational-surface resonances more generally, the direct fusion
+      analog of "striking a resonant mode" — still need contour extraction at arbitrary ψ
+      levels and aren't implemented here; q_95 above uses a documented large-aspect-ratio
+      approximation instead (see "Plasma diagnostics"). <strong>Stellarators</strong> are
+      inherently three-dimensional and aren't handled by this page at all; they're a separate
+      viewer built from equilibria precomputed offline (VMEC/DESC) rather than solved live
+      in-browser — see the <a href="stellarator.html">3D stellarator viewer</a>. The burn model
+      doesn't re-solve the equilibrium as pressure drops and doesn't evolve temperature — T/n
+      stay the fixed operating-point values from "Live fuel burn" throughout a shot, even
+      though the new power balance above now does track input heating power and energy
+      confinement time as real quantities. D-³He's real side reactions (it's not perfectly
+      aneutronic in practice — some D-D branching still happens in a D-³He plasma) aren't
+      modeled; only the primary D+³He channel is.
     </p>
 
     <h3>References</h3>
@@ -413,6 +652,11 @@ D-³He: D + ³He → ⁴He(3.6 MeV) + p(14.7 MeV)           Q = 18.3 MeV   (aneu
       <li>A.J. Cerfon &amp; J.P. Freidberg, "One size fits all analytic solutions to the Grad–Shafranov equation" (2010)</li>
       <li>H.-S. Bosch &amp; G.M. Hale, "Improved formulas for fusion cross-sections and thermal reactivities," Nucl. Fusion 32, 611 (1992)</li>
       <li>T.A. Heltemes, G.A. Moses &amp; J.F. Santarius, "Analysis of an Improved Fusion Reaction Rate Model for Use in Fusion Plasma Simulations," UWFDM-1268, U. Wisconsin Fusion Technology Institute (2005) — reproduces the Bosch-Hale D-D/D-³He coefficients used to cross-check this page's implementation</li>
+      <li>ITER Physics Expert Group on Confinement and Transport, "Chapter 2: Plasma confinement and transport," Nucl. Fusion 39, 2175 (1999) — source of the IPB98(y,2) ELMy H-mode confinement scaling used for τ_E/H98 above</li>
+      <li>Y.R. Martin, T. Takizuka &amp; the ITPA CDBM H-mode Threshold Database Working Group, "Power requirement for accessing the H-mode in ITER," J. Phys. Conf. Ser. 123, 012033 (2008) — the Martin08 L-H transition threshold scaling used for the H-mode/L-mode badge</li>
+      <li>P.C. Eich et al., "Inter-ELM power decay length for JET and ASDEX Upgrade," Nucl. Fusion 53, 093031 (2013) — cited functional form for the illustrative λ_q estimate (coefficient not independently re-checked this session, see "Divertor")</li>
+      <li>J. Wesson, <em>Tokamaks</em> — internal inductance and large-aspect-ratio safety-factor formulas used for l_i and q_95</li>
+      <li>JET (Joint European Torus, Culham/UKAEA) and DIII-D (General Atomics) real device parameters — used as real-world scale references for the Operating point presets</li>
       <li>Real free/fixed-boundary solvers this mirrors in spirit: FreeGS, CHEASE, EFIT</li>
     </ul>
 

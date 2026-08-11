@@ -57,3 +57,40 @@ export function formatRate(perSec) {
 export function formatDensity(perM3) {
   return formatSci(perM3, " m⁻³");
 }
+
+// ---- New formatters for the diagnostics dashboard ------------------------------------
+
+export function formatTesla(T) {
+  return T.toFixed(2) + " T";
+}
+
+export function formatMA(MA) {
+  return MA.toFixed(2) + " MA";
+}
+
+export function formatKeV(keV) {
+  return keV.toFixed(2) + " keV";
+}
+
+// q_95, l_i, H98 -- plain dimensionless ratios.
+export function formatDimensionless(x) {
+  return x.toFixed(2);
+}
+
+// Fixed-scale MW display (unlike formatPower's auto-tiering W/kW/MW), for quantities that are
+// always reported in MW on real tokamaks (heating powers, power balance terms).
+export function formatMW(MW) {
+  return MW.toFixed(1) + " MW";
+}
+
+export function formatMWm2(MWm2) {
+  return MWm2.toFixed(1) + " MW/m²";
+}
+
+export function formatCelsius(C) {
+  return Math.round(C) + " °C";
+}
+
+export function formatMM(mm) {
+  return mm.toFixed(1) + " mm";
+}

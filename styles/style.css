@@ -434,6 +434,144 @@ canvas {
   color: var(--muted);
 }
 
+.slice-readout {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.slice-badge {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  border: 1px solid var(--line);
+  background: #fff;
+  border-radius: 999px;
+  padding: 0.3rem 0.75rem;
+}
+
+.slice-badge-value {
+  font-size: 0.95rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--fg);
+}
+
+.slice-badge-label {
+  font-size: 0.68rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.slice-badge-mode.mode-h {
+  border-color: #a7e3c1;
+  background: #eefcf3;
+}
+
+.slice-badge-mode.mode-h .slice-badge-value {
+  color: #157a45;
+}
+
+.slice-badge-mode.mode-l {
+  border-color: #f0d9a8;
+  background: #fdfaf3;
+}
+
+.slice-badge-mode.mode-l .slice-badge-value {
+  color: #9a6a10;
+}
+
+.diagnostics-section {
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--line);
+}
+
+.diagnostics-heading {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  margin: 0 0 0.4rem;
+  font-weight: 600;
+}
+
+.illustrative-tag {
+  text-transform: none;
+  letter-spacing: normal;
+  font-weight: 500;
+  font-size: 0.68rem;
+  color: #9a6a10;
+  border: 1px solid #f0d9a8;
+  background: #fdfaf3;
+  border-radius: 999px;
+  padding: 0.05rem 0.5rem;
+  margin-left: 0.4rem;
+}
+
+.power-columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 1rem;
+}
+
+.power-col-label {
+  font-size: 0.72rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.3rem;
+}
+
+.power-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.88rem;
+  font-variant-numeric: tabular-nums;
+  padding: 0.2rem 0;
+  border-bottom: 1px dashed var(--line);
+}
+
+.power-row span:first-child {
+  color: var(--muted);
+}
+
+.power-totals {
+  display: flex;
+  gap: 1.5rem;
+  margin-top: 0.75rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--line);
+}
+
+.power-totals div {
+  display: flex;
+  gap: 0.4rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.power-totals span:first-child {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.shot-chart-wrap {
+  margin-top: 0.5rem;
+}
+
+.shot-chart-wrap canvas {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 640 / 260;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: block;
+}
+
 .story-link {
   display: inline-block;
   margin-top: 1.25rem;

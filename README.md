@@ -23,11 +23,29 @@ off. A "follow a single reaction" page walks through one D-T/D-D/D-³He reaction
 particle-by-particle. A small 3D section revolves the live 2D solve into a torus with
 schematic magnet coils, orbit-controllable and pulsing with fusion power alongside the 2D
 view while the reactor plays. Shareable via URL
-(`#shape=...&profile=...&fuel=...&capture=...&horizon=...`), keyboard shortcuts (`1`-`4` for
-shape, `Q`/`W`/`E`/`R` for profile, `Z`/`X`/`C` for fuel, `A`/`F` for capture method, `G`/`H`/`J`
-for chart horizon), mesh-visibility toggle. See its "How this works" panel for the physics,
-the deliberate simplifications (fixed boundary, no eigensolver needed), and validation
-against the closed-form Solov'ev equilibrium.
+(`#shape=...&profile=...&fuel=...&capture=...&horizon=...&op=...`), keyboard shortcuts (`1`-`4`
+for shape, `Q`/`W`/`E`/`R` for profile, `Z`/`X`/`C` for fuel, `A`/`F` for capture method,
+`G`/`H`/`J` for chart horizon, `O`/`P` for operating point), mesh-visibility toggle. See its
+"How this works" panel for the physics, the deliberate simplifications (fixed boundary, no
+eigensolver needed), and validation against the closed-form Solov'ev equilibrium.
+
+A JET/DIII-D-style operational diagnostics dashboard sits alongside the 2D slice: Bt, an
+H-mode/L-mode badge, β_N, and q_95 near the plot; a "Plasma parameters" block (Ip, W_th, H98,
+Te0, n_e, τ_E, l_i); a "Power and fusion" 0D power balance (P_OH/NBI/ECH/ICH/alpha in,
+P_rad/loss/dW-dt out, P_in/P_out totals); an illustrative "Divertor" panel (λ_q, f_det, q_i,
+T_s); and a real-time scrolling "Shot trace" strip chart. A new **Operating point** preset
+(`src/fusion/operatingPoints.js`, JET-scale / DIII-D-scale) supplies the real-unit Bt/Ip/heating
+inputs the arbitrary-unit solver can't provide on its own. Several of these are genuinely
+derived from the already-solved ψ field or the burn model with no new calibration -- internal
+inductance `l_i` (a scale-invariant ratio of ⟨B_θ²⟩), thermal energy `W_th` and `β_N` (from the
+operating point's real n_e/T and the solved volume), `τ_E`/`H98` (IPB98(y,2) scaling vs. the
+real W_th/P_loss ratio), and the H-mode gate (Martin08 L-H threshold vs. real auxiliary heating
+power) -- validated in `tools/validate_flux_diagnostics.mjs` and
+`tools/validate_diagnostics.mjs`. The divertor block and D-α trace are explicitly illustrative
+(see the how-it-works panel for what's real vs. not). Play now ramps the field/current/heating
+up over ~1.4s and back down over ~1.1s on Pause/Reset (a `magnetRamp` state machine decoupled
+from the existing fuel-burn clock), driving the whole dashboard and the 3D coil glow up and
+down with it, with a small illustrative jitter/ELM-spike texture layered on top at flat-top.
 
 ## Stellarator flux-surface viewer (`stellarator.html`)
 
@@ -59,6 +77,8 @@ node tools/validate_custom_boundary.mjs     # same check through the equation-ba
 node tools/validate_expr_parser.mjs         # r(theta) expression parser correctness
 node tools/validate_reactivity.mjs          # D-T/D-D/D-3He reactivities vs. a reference table
 node tools/validate_stellarator_volume.mjs  # 3D mesh-volume formula vs. a synthetic torus
+node tools/validate_flux_diagnostics.mjs    # l_i and boundary surface area vs. closed-form references
+node tools/validate_diagnostics.mjs         # IPB98(y,2) tau_E, Martin08 P_LH, W_th/beta_N arithmetic
 ```
 
 `validate_solovev.mjs` reports L2 error against the closed-form Solov'ev equilibrium at
@@ -92,10 +112,12 @@ styles/style.css       shared styling
 src/
   math/                sparse CSR matrix, Jacobi-preconditioned CG, r(theta) expression parser
   geom/                Miller + equation-based boundary parametrizations, O-grid mesher
-  fem/                 P1 assembly, Picard equilibrium driver, Solov'ev closed form
+  fem/                 P1 assembly, Picard equilibrium driver, Solov'ev closed form,
+                        mesh/psi-derived diagnostics (internal inductance, surface area)
   profiles/            pressure/current profile presets (Grad-Shafranov steady states)
-  fusion/               Bosch-Hale reactivities, fuel presets, 0D burn model, energy capture
-  app/                 contour extraction, canvas/3D rendering, colormap, burn chart, UI wiring
+  fusion/               Bosch-Hale reactivities, fuel presets, 0D burn model, energy capture,
+                        real-unit operating points, plasma/power-balance/divertor diagnostics
+  app/                 contour extraction, canvas/3D rendering, colormap, burn/shot charts, UI wiring
   worker/              off-main-thread tokamak solve
   stellarator/         .bin loader, three.js viewer, 3D mesh-volume calc, page glue
   story/               single-reaction narrative data + canvas animations
@@ -105,6 +127,8 @@ tools/
   validate_expr_parser.mjs         r(theta) expression parser correctness
   validate_reactivity.mjs          D-T/D-D/D-3He reactivity cross-check
   validate_stellarator_volume.mjs  3D mesh-volume formula vs. a synthetic torus
+  validate_flux_diagnostics.mjs    internal inductance / surface area vs. closed-form references
+  validate_diagnostics.mjs         IPB98(y,2)/Martin08/W_th-beta_N formula checks
   export_stellarators.py           stellarator data export (see above)
 data/stellarators/     exported .bin flux-surface data (committed, ~144KB each)
 vendor/three/          vendored three.js (MIT) -- the one dependency, not CDN-loaded
@@ -120,8 +144,9 @@ Hosted as a plain static site on GitHub Pages, serving from the repo root of `ma
 Tokamaks: fixed-boundary only (no free-boundary/coil solve), with an equation-based custom
 boundary option (star-shaped curves only -- see the mesh comment in `src/geom/mesh.js` for
 why free-hand drawing isn't offered). Stellarators: geometry only (flux-surface shape from
-precomputed equilibria, not pressure/current profiles or stability). Safety-factor/q-profile
-diagnostics are a natural next step, not done here.
+precomputed equilibria, not pressure/current profiles or stability). q_95 uses a large-aspect-
+ratio approximation, not the exact flux-surface-averaged line integral (still a natural next
+step); the divertor panel and D-alpha trace are explicitly illustrative, not verified physics.
 
 ## License
 

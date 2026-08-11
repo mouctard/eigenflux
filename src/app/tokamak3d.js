@@ -302,12 +302,14 @@ export function createTokamakViewer(container) {
     });
   }
 
-  // The coils' emissive tint follows whether the confining field is currently energized
-  // (tied to burnPlaying, not a literal magnet-ramp-time simulation -- see the how-it-works
-  // panel).
-  function setMagnetActive(active) {
+  // The coils' emissive tint follows the magnet ramp fraction (0..1) driven by main.js's
+  // magnetRamp state machine -- continuous, not a snap, so the coils visibly energize/
+  // de-energize over the ramp-up/ramp-down of a shot rather than switching instantly. Accepts
+  // a plain boolean too (treated as 0 or 1) for callers that don't track a ramp fraction.
+  function setMagnetActive(activeOrFrac) {
+    const frac = typeof activeOrFrac === "number" ? Math.max(0, Math.min(1, activeOrFrac)) : activeOrFrac ? 1 : 0;
     for (const mat of magnetMaterials) {
-      mat.emissiveIntensity = active ? 0.55 : 0;
+      mat.emissiveIntensity = 0.55 * frac;
     }
   }
 
