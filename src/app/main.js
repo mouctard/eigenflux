@@ -527,7 +527,7 @@ function renderDiagnostics(now, elapsedSim, P_fusion_W, chargedFrac) {
   lastWthClean_J = Wth_clean_J;
   lastWthFrameReal = now;
 
-  const P_rad = estimateRadiatedPowerMW(n_e_eff / 1e20, opPoint.T_keV);
+  const P_rad = estimateRadiatedPowerMW(n_e_eff / 1e20, opPoint.T_keV, lastVolume_m3);
   const balance = computePowerBalance({ P_OH, P_NBI, P_ECH, P_ICH, P_alpha, P_rad, dWdt_MW });
 
   const tauE_actual = balance.P_loss > 0 ? Wth_J / (balance.P_loss * 1e6) : 0;
@@ -616,7 +616,7 @@ function renderDiagnostics(now, elapsedSim, P_fusion_W, chargedFrac) {
     P_ECH: op.P_ECH_MW,
     P_ICH: op.P_ICH_MW,
     P_alpha: (chargedFrac * P_fusion_W) / 1e6,
-    P_rad: estimateRadiatedPowerMW(opPoint.n0_m3 / 1e20, opPoint.T_keV),
+    P_rad: estimateRadiatedPowerMW(opPoint.n0_m3 / 1e20, opPoint.T_keV, lastVolume_m3),
     dWdt_MW: 0,
   });
   renderShotChart(

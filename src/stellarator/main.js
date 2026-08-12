@@ -350,7 +350,7 @@ function renderBurnState(now) {
   // modeled here). Steady state assumed (dW/dt = 0): unlike the tokamak page's ramping
   // operating point, this page's illustrative T/n is constant once ignited.
   const Wth_J = computeThermalEnergyJ(n, ILLUSTRATIVE_OPERATING_POINT.T_keV, lastVolume_m3 || 0);
-  const P_rad_MW = estimateRadiatedPowerMW(n / 1e20, ILLUSTRATIVE_OPERATING_POINT.T_keV);
+  const P_rad_MW = estimateRadiatedPowerMW(n / 1e20, ILLUSTRATIVE_OPERATING_POINT.T_keV, lastVolume_m3);
   const P_loss_MW = ILLUSTRATIVE_OPERATING_POINT.P_heat_MW - P_rad_MW;
   const tauE_s = P_loss_MW > 0 ? Wth_J / (P_loss_MW * 1e6) : 0;
   statWthEl.textContent = formatEnergy(Wth_J);

@@ -531,7 +531,8 @@
       <tr><td>q<sub>95</sub></td><td>Approximation</td><td>Large-aspect-ratio formula, not the exact flux-surface line integral (not yet implemented).</td></tr>
       <tr><td>P<sub>α</sub></td><td>Real, reused</td><td>Straight from the burn model's already-computed charged-particle fusion power split.</td></tr>
       <tr><td>λ<sub>q</sub>, q<sub>i</sub>, f<sub>det</sub>, T<sub>s</sub> (divertor)</td><td>Real, simplified</td><td>Named real effects (Eich scaling, flux expansion, grazing incidence, radiated-fraction detachment proxy, transient tungsten conduction) with representative rather than device-specific parameters — see "Divertor".</td></tr>
-      <tr><td>P<sub>rad</sub>, D-α trace</td><td>Illustrative</td><td>No trustworthy source formula/coefficient found this session for Bremsstrahlung; D-α is a stylized ELM-spike texture, not a spectroscopic calculation.</td></tr>
+      <tr><td>P<sub>rad</sub> (Bremsstrahlung)</td><td>Real, simplified</td><td>NRL Plasma Formulary hydrogenic-plasma formula, scaled by the real solved volume; Z<sub>eff</sub>=1 (no impurity radiation modeled).</td></tr>
+      <tr><td>D-α trace</td><td>Real shape, illustrative level</td><td>ELM timing/shape comes from a real power-balance identity and threshold gate (see "The shot"); the base emission level itself is an arbitrary-unit calibration, not a spectroscopic calculation.</td></tr>
       <tr><td>Temperature, initial density per steady-state preset</td><td>Illustrative</td><td>Reactor-ballpark operating points, not derived from the solver's own arbitrary-unit pressure profile.</td></tr>
       <tr><td>Profile amplitudes (p₀, F₀), overall ψ scale</td><td>Arbitrary units</td><td>Solver-internal, not calibrated to real pascals/amperes — see "Units".</td></tr>
       <tr><td>Energy-capture blanket/turbine multipliers</td><td>Illustrative</td><td>Literature-ballpark conceptual-design numbers, not independently checked.</td></tr>
@@ -879,12 +880,14 @@ D-³He: D + ³He → ⁴He(3.6 MeV) + p(14.7 MeV)           Q = 18.3 MeV   (aneu
       here — a real balance equation, not fitted to match any particular example shot's numbers
       (which need not balance exactly). <code>dW/dt</code> is a genuine transient: a finite
       difference of W<sub>th</sub>, nonzero during the magnet/current ramp (see "The shot" below) and
-      ~0 at flat-top. <code>P<sub>rad</sub></code> is the one input in this balance whose formula is
-      illustrative rather than checked — this session couldn't verify a trustworthy
-      Bremsstrahlung coefficient/unit convention from source, so it uses an n<sub>e</sub>²√T-shaped
-      functional form calibrated to a representative point. Everything downstream of it
-      (P<sub>loss</sub>, τ<sub>E</sub>, H<sub>98</sub>) inherits that one soft input, same as any real power-balance
-      analysis inherits its radiated-power measurement's own uncertainty.
+      ~0 at flat-top. <code>P<sub>rad</sub></code> is real Bremsstrahlung now: the NRL Plasma
+      Formulary's hydrogenic-plasma formula (2019 ed., eq. 30), <code>P<sub>Br</sub> =
+      1.69×10⁻³²·N<sub>e</sub>·T<sub>e</sub><sup>1/2</sup>·ΣZ²N(Z) W/cm³</code>, reduced for a pure
+      (no-impurity) hydrogen-isotope fuel to N<sub>e</sub>²√T<sub>e</sub>, converted to MW and
+      multiplied by the real solved plasma volume (a genuine power <em>density</em> needs a volume
+      to become a total power — the previous version of this page didn't have one, so it didn't
+      scale with plasma size at all). The remaining simplification is Z<sub>eff</sub>=1: no
+      impurity radiation, the same no-impurity assumption the rest of this page already makes.
     </p>
 
     <h3>Divertor</h3>

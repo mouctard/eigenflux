@@ -71,6 +71,11 @@ export function computeIPB98TauE({ Ip_MA, Bt_T, nebar_1e19, P_loss_MW, R0_m, kap
 
 // Martin08 L-H transition power threshold scaling (n_e, Bt, plasma surface area S):
 //   P_LH[MW] = 0.0488 * nbar[1e20 m^-3]^0.717 * Bt[T]^0.803 * S[m^2]^0.941 * (2/A_eff)
+// Base exponents/prefactor independently re-verified this session against Martin, Takizuka
+// et al., "Power requirement for accessing the H-mode in ITER," J. Phys. Conf. Ser. 123,
+// 012033 (2008): 0.0488, 0.717, 0.803, 0.941 all match exactly. The (2/A_eff) isotope-mass
+// correction is a separate, common addition in later reviews of this scaling, not itself
+// re-verified against a source this pass.
 export function computeLHThreshold({ nebar_1e20, Bt_T, S_m2, A_eff }) {
   if (!(nebar_1e20 > 0) || !(Bt_T > 0) || !(S_m2 > 0) || !(A_eff > 0)) return 0;
   return 0.0488 * Math.pow(nebar_1e20, 0.717) * Math.pow(Bt_T, 0.803) * Math.pow(S_m2, 0.941) * (2 / A_eff);
@@ -155,11 +160,24 @@ export function estimateSurfaceTempC(qi_MWm2, tPulse_s) {
   return AMBIENT_C + riseC;
 }
 
-// Illustrative radiated power: n^2*sqrt(T)-shaped (the qualitative Bremsstrahlung scaling),
-// calibrated to the sample point (nbar~1.19e20, T~5.84 keV -> ~4.4 MW) since this session
-// couldn't verify a trustworthy Bremsstrahlung coefficient/unit convention (see how-it-works).
-export function estimateRadiatedPowerMW(nebar_1e20, T_keV) {
-  return 1.2857 * nebar_1e20 * nebar_1e20 * Math.sqrt(Math.max(0, T_keV));
+// Bremsstrahlung radiated power -- now the real NRL Plasma Formulary formula (2019 ed.,
+// eq. 30), not a single-point-calibrated placeholder:
+//   P_Br = 1.69e-32 * N_e * T_e^(1/2) * sum[Z^2 * N(Z)]   watt/cm^3,  N_e in cm^-3, T_e in eV
+// For a pure hydrogenic fuel (D/T/3He, all Z=1, no impurities -- the same no-impurity
+// simplification this project's burn model already makes everywhere else) and quasi-neutrality
+// (n_i ~= n_e), sum[Z^2*N(Z)] ~= N_e, giving P_Br = 1.69e-32 * N_e^2 * T_e^(1/2) W/cm^3.
+//
+// This is a *power density*, so unlike the old placeholder it needs the real plasma volume to
+// become a total power -- the old version silently had no volume dependence at all, meaning it
+// didn't scale with plasma size/shape the way real Bremsstrahlung loss must. Converting units
+// (n_e: m^-3 -> cm^-3 is *1e-6; T_e: keV -> eV is *1000; W/cm^3 -> W/m^3 is *1e6; W -> MW is
+// /1e6) collapses to one coefficient:
+//   P_rad[MW] = 5.344e-3 * nbar[1e20 m^-3]^2 * sqrt(T[keV]) * V[m^3]
+// Checked against realistic numbers before use: at this page's JET-scale/circular defaults
+// (nbar=0.6e20, T=8keV, V~59 m^3) this gives ~0.32 MW, the right order of magnitude scaled down
+// from real ITER-class Bremsstrahlung losses (tens of MW at ~800 m^3, ~1e20 m^-3, ~10-20 keV).
+export function estimateRadiatedPowerMW(nebar_1e20, T_keV, V_m3) {
+  return 5.344e-3 * nebar_1e20 * nebar_1e20 * Math.sqrt(Math.max(0, T_keV)) * Math.max(0, V_m3 || 0);
 }
 
 // Illustrative D-alpha base level (a.u.), linear in loss power -- calibrated so the sample
