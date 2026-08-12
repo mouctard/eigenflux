@@ -13,6 +13,9 @@ import { formatTime, formatPower, formatEnergy, formatSignedEnergy, formatRate, 
 import { paintLegendBar } from "../app/legend.js";
 import { computeThermalEnergyJ, estimateRadiatedPowerMW } from "../fusion/diagnostics.js";
 import { initGlossaryTooltips } from "../app/tooltip.js";
+import { wireThemeToggle } from "../app/theme.js";
+import { createLossProcess } from "../fusion/neoclassicalLoss.js";
+import { buildStatusFragment } from "../app/statusLine.js";
 
 const container = document.getElementById("viewer");
 const statusEl = document.getElementById("status");
@@ -75,9 +78,15 @@ async function selectConfig(key) {
     lastVolume_m3 = computeSurfaceVolume(outer, data.nTheta, data.nZeta);
     rebuildBurnModel();
 
-    statusEl.textContent =
-      `${preset.label} — NFP ${data.NFP}, ${data.nSurfaces} nested surfaces ` +
-      `(precomputed DESC equilibrium), V = ${lastVolume_m3.toFixed(1)} m³. ${preset.note}`;
+    statusEl.replaceChildren(
+      buildStatusFragment([
+        `${preset.label} — NFP ${data.NFP}, ${data.nSurfaces} nested surfaces ` +
+          `(precomputed DESC equilibrium), `,
+        { text: "V", var: "volumeStat" },
+        ` = ${lastVolume_m3.toFixed(1)} m³. ${preset.note}`,
+      ])
+    );
+    initGlossaryTooltips({ staticRoots: [statusEl] });
   } catch (err) {
     statusEl.textContent = `Failed to load ${preset.label}: ${err.message}`;
   }
@@ -130,17 +139,38 @@ const timeframeButtons = buildPresetButtons(
   TIMEFRAME_HOTKEYS
 );
 
-// Reuses the tokamak page's variable-glossary tooltip system for the two new W_th/tau_E
-// tiles above -- same GLOSSARY entries, no stellarator-specific content needed.
-initGlossaryTooltips({
-  proseRoots: [document.querySelector(".reactor-readout"), document.getElementById("how-panel")],
-});
-wireKeyboardShortcuts({
-  ...Object.fromEntries(CONFIG_HOTKEYS.map((k, i) => [k, () => configButtons[configKeys[i]].click()])),
-  ...Object.fromEntries(FUEL_HOTKEYS.map((k, i) => [k, () => fuelButtons[fuelKeys[i]].click()])),
-  ...Object.fromEntries(CAPTURE_HOTKEYS.map((k, i) => [k, () => captureButtons[captureKeys[i]].click()])),
-  ...Object.fromEntries(TIMEFRAME_HOTKEYS.map((k, i) => [k, () => timeframeButtons[timeframeKeys[i]].click()])),
-});
+// Wrapped in try/catch on purpose: this is all non-essential UI polish layered on top of the
+// actually-essential reactor controls wired further down, and this page has already been
+// taken down once by an uncaught exception in this same tier (a stale import silently
+// aborting every statement after it in this module -- see src/app/ui.js's wireDropdown
+// comment for the tokamak page's version of the same lesson).
+try {
+  // Reuses the tokamak page's variable-glossary tooltip system for the two new W_th/tau_E
+  // tiles above -- same GLOSSARY entries, no stellarator-specific content needed.
+  initGlossaryTooltips({
+    proseRoots: [document.querySelector(".reactor-readout"), document.getElementById("how-panel")],
+  });
+
+  const themeToggleInput = document.getElementById("theme-toggle-input");
+  const themeToggleText = document.getElementById("theme-toggle-text");
+  wireThemeToggle(themeToggleInput);
+  if (themeToggleInput && themeToggleText) {
+    themeToggleText.textContent = themeToggleInput.checked ? "Dark mode" : "Light mode";
+    themeToggleInput.addEventListener("change", () => {
+      themeToggleText.textContent = themeToggleInput.checked ? "Dark mode" : "Light mode";
+      renderBurnState(performance.now());
+    });
+  }
+
+  wireKeyboardShortcuts({
+    ...Object.fromEntries(CONFIG_HOTKEYS.map((k, i) => [k, () => configButtons[configKeys[i]].click()])),
+    ...Object.fromEntries(FUEL_HOTKEYS.map((k, i) => [k, () => fuelButtons[fuelKeys[i]].click()])),
+    ...Object.fromEntries(CAPTURE_HOTKEYS.map((k, i) => [k, () => captureButtons[captureKeys[i]].click()])),
+    ...Object.fromEntries(TIMEFRAME_HOTKEYS.map((k, i) => [k, () => timeframeButtons[timeframeKeys[i]].click()])),
+  });
+} catch (e) {
+  console.error("Non-essential UI wiring (tooltips/theme/shortcuts) failed:", e);
+}
 
 // ---- Live burn simulation ------------------------------------------------------------
 // Same 0D closed-form model as the tokamak page (src/fusion/burn.js), driven by this
@@ -160,6 +190,7 @@ const burnChartCaption = document.getElementById("burn-chart-caption");
 const burnToggleBtn = document.getElementById("burn-toggle");
 const burnResetBtn = document.getElementById("burn-reset");
 const burnSpeedSelect = document.getElementById("burn-speed");
+const lossToggle = document.getElementById("loss-toggle");
 
 const BURN_MODES = { deplete: { label: "Deplete" }, sustained: { label: "Sustained" } };
 const BURN_MODE_HOTKEYS = ["d", "s"];
@@ -179,6 +210,14 @@ const REDRAW_INTERVAL_MS = 66;
 // matching comment for the framing (same semantics on both pages).
 let magnetActivated = false;
 let activationEnergySpent_J = 0;
+// Real (not sped-up) elapsed time since this shot's magnets were first energized -- drives
+// the neoclassical-loss Poisson process's real-time clock, the same idiom the tokamak page
+// uses for its sawtooth/ELM real-time clocks.
+let shotStartReal = null;
+
+const lossProcess = createLossProcess();
+let cumulativeLostEnergy_J = 0;
+let lastLossFrameReal = null;
 
 const burnModeButtons = buildPresetButtons(
   document.getElementById("burn-mode-presets"),
@@ -200,6 +239,9 @@ burnSpeedSelect.addEventListener("change", () => {
 });
 burnToggleBtn.addEventListener("click", () => setBurnPlaying(!burnPlaying));
 burnResetBtn.addEventListener("click", () => resetShot());
+if (lossToggle) {
+  lossToggle.addEventListener("change", () => renderBurnState(performance.now()));
+}
 
 function setBurnPlaying(playing) {
   burnPlaying = playing;
@@ -208,6 +250,7 @@ function setBurnPlaying(playing) {
     if (!magnetActivated) {
       magnetActivated = true;
       activationEnergySpent_J = ITER_MAGNET_ENERGY_J;
+      shotStartReal = performance.now();
     }
     burnLastFrameReal = performance.now();
     rafHandle = requestAnimationFrame(burnTick);
@@ -225,6 +268,10 @@ function resetShot() {
   burnLastFrameReal = performance.now();
   magnetActivated = false;
   activationEnergySpent_J = 0;
+  shotStartReal = null;
+  lossProcess.reset();
+  cumulativeLostEnergy_J = 0;
+  lastLossFrameReal = null;
   setBurnPlaying(false);
 }
 
@@ -269,13 +316,29 @@ function renderBurnState(now) {
     gauge.densityEl.textContent = densityText;
   }
 
+  // Neoclassical ripple-transport loss (optional, off by default -- see the checkbox copy
+  // and "How this works" for the physics): a real Poisson process derates displayed power,
+  // with the shortfall integrated over real elapsed time into a running energy loss so the
+  // energy/net-energy tiles stay consistent with the power dips instead of drifting
+  // independently of them.
+  const shotElapsedReal_s = shotStartReal != null ? (now - shotStartReal) / 1000 : 0;
+  const lossFactor = lossToggle && lossToggle.checked && burnPlaying ? lossProcess.factorAt(shotElapsedReal_s) : 1;
+  if (burnPlaying && lossToggle && lossToggle.checked && lastLossFrameReal != null) {
+    const dt_s = (now - lastLossFrameReal) / 1000;
+    if (dt_s > 0) cumulativeLostEnergy_J += P * (1 - lossFactor) * dt_s;
+  }
+  lastLossFrameReal = now;
+
+  const P_display = P * lossFactor;
+  const E_display = Math.max(0, E - cumulativeLostEnergy_J);
+
   statTimeEl.textContent = formatTime(burnElapsedSim);
-  statPowerEl.textContent = formatPower(P);
-  statEnergyEl.textContent = formatEnergy(E);
-  statRateEl.textContent = formatRate(burnModel.avgQ_J > 0 ? P / burnModel.avgQ_J : 0);
+  statPowerEl.textContent = formatPower(P_display);
+  statEnergyEl.textContent = formatEnergy(E_display);
+  statRateEl.textContent = formatRate(burnModel.avgQ_J > 0 ? P_display / burnModel.avgQ_J : 0);
 
   const capture = CAPTURE_PRESETS[state.captureKey];
-  const { P_electric, E_electric } = convertToElectric(P, E, burnModel, capture);
+  const { P_electric, E_electric } = convertToElectric(P_display, E_display, burnModel, capture);
   statElectricPowerEl.textContent = formatPower(P_electric);
   statElectricEnergyEl.textContent = formatEnergy(E_electric);
   statNetEnergyEl.textContent = formatSignedEnergy(E_electric - activationEnergySpent_J);
@@ -301,6 +364,10 @@ function renderBurnState(now) {
   const glow = burnPlaying ? { powerLevel } : null;
   viewer.setGlow(glow);
   viewer.setFuelFraction(frac);
+  // Only the outermost surface dims on a loss event -- the core reaction rate itself (the
+  // glow above) is unaffected, since this models particles lost at the boundary after being
+  // produced, not a change in the core fusion rate.
+  viewer.setLossFlicker(lossFactor);
 
   const horizonSeconds = TIMEFRAME_PRESETS[state.timeframeKey].seconds;
   const liveT = burnPlaying ? burnElapsedSim : null;

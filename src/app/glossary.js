@@ -104,6 +104,30 @@ export const GLOSSARY = {
     term: "D-α — deuterium-alpha line",
     html: `The Balmer-α (n=3→2) emission line of atomic deuterium, emitted when recycling neutrals at the plasma edge are excited and de-excite. A standard real diagnostic (a simple photodiode or camera filtered to 656 nm) and a live proxy for edge recycling/ELM activity in the shot trace.`,
   },
+
+  // Solver-status-line terms (src/fem/equilibrium.js) -- what the "Picard: N iterations,
+  // residual X, ψ_axis = Y, V = Z m³, mesh: A nodes / B tris" line under each equilibrium
+  // solve actually means.
+  picard: {
+    term: "Picard iteration — nonlinear solve method",
+    html: `The Grad–Shafranov equation is nonlinear: its source term R·p′(ψ<sub>N</sub>) + FF′(ψ<sub>N</sub>)/R depends on the normalized flux ψ<sub>N</sub> = 1−ψ/ψ<sub>axis</sub>, which isn't known until ψ itself is solved. A Picard (fixed-point) iteration handles this: solve the <em>linear</em> elliptic PDE with the source evaluated at the previous iterate's ψ, then repeat with the new ψ. The stiffness matrix depends only on mesh geometry, not ψ, so it's assembled once and reused — each iteration is a single warm-started conjugate-gradient solve, not a refactorization. The count shown is how many passes this shape/profile combination took to converge.`,
+  },
+  residual: {
+    term: "residual — solver convergence measure",
+    html: `The relative change between consecutive Picard iterates, ‖ψ<sub>new</sub>−ψ<sub>old</sub>‖₂ / ‖ψ<sub>new</sub>‖₂. The solve stops once this drops below the convergence tolerance (10⁻⁶) or a maximum iteration count is hit. A value like 4×10⁻⁷ means the last iteration changed the solution by about that fraction of its own size — well converged, not just out of iterations.`,
+  },
+  psiAxis: {
+    term: "ψ_axis — flux at the magnetic axis",
+    html: `The maximum value of the solved poloidal flux ψ over the whole mesh, at the O-point (magnetic axis) where the flux surfaces close to a single point. Every profile function — pressure, current, the fill colormap — is evaluated against the normalized flux ψ<sub>N</sub> = 1−ψ/ψ<sub>axis</sub> this defines: 0 at the axis, 1 at the boundary.`,
+  },
+  volumeStat: {
+    term: "V — plasma volume",
+    html: `Computed from the solved mesh via Pappus's theorem applied per triangle: each triangle, revolved 2π around the machine's central (vertical) axis, sweeps out a ring-shaped solid, and summing those ring volumes over the whole mesh gives the total plasma volume — using the solved (R, Z) mesh coordinates directly as meters.`,
+  },
+  meshStat: {
+    term: "mesh — finite-element discretization",
+    html: `The structured O-grid the equilibrium is solved on: rings at n<sub>ρ</sub> radial positions × n<sub>θ</sub> poloidal angles, fanned out from a single center node, with the outermost ring landing exactly on the plasma boundary (so imposing ψ=0 there is exact, not approximate). Each ring-to-ring strip splits into two triangles per quad — the node/triangle counts shown are that mesh's total size at this shape's solve resolution.`,
+  },
 };
 
 // Ordered (prefix, subText) -> key patterns for the DOM-based auto-wrap pass in tooltip.js:

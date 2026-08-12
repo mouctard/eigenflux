@@ -16,6 +16,7 @@ import { createTokamakViewer } from "./tokamak3d.js";
 import { buildPresetButtons, setActive, wireDropdown, wireKeyboardShortcuts, buildFuelGauges } from "./ui.js";
 import { wireThemeToggle } from "./theme.js";
 import { initGlossaryTooltips } from "./tooltip.js";
+import { buildStatusFragment } from "./statusLine.js";
 import {
   formatTime,
   formatPower,
@@ -829,11 +830,24 @@ worker.onmessage = (e) => {
   viewer3d.setEquilibrium(mesh, SOLVE_NRHO, SOLVE_NTHETA);
 
   const shapeLabel = data.shapeKey === "custom" ? "Custom" : SHAPE_PRESETS[data.shapeKey].label;
-  statusEl.textContent =
-    `${shapeLabel} / ${PROFILE_PRESETS[data.profileKey].label} — ` +
-    `Picard: ${data.iterations} iterations, residual ${data.residual.toExponential(2)}, ` +
-    `ψ_axis = ${data.psiAxis.toFixed(3)}, V = ${lastVolume_m3.toFixed(0)} m³, ` +
-    `mesh: ${data.nodes.length} nodes / ${data.triangles.length} tris`;
+  // Rebuilt as DOM nodes (not a template-string .textContent assignment) so each term below
+  // can carry its own glossary tooltip -- see src/app/statusLine.js's comment for why.
+  statusEl.replaceChildren(
+    buildStatusFragment([
+      `${shapeLabel} / ${PROFILE_PRESETS[data.profileKey].label} — `,
+      { text: "Picard", var: "picard" },
+      `: ${data.iterations} iterations, `,
+      { text: "residual", var: "residual" },
+      ` ${data.residual.toExponential(2)}, `,
+      { text: "ψ_axis", var: "psiAxis" },
+      ` = ${data.psiAxis.toFixed(3)}, `,
+      { text: "V", var: "volumeStat" },
+      ` = ${lastVolume_m3.toFixed(0)} m³, `,
+      { text: "mesh", var: "meshStat" },
+      `: ${data.nodes.length} nodes / ${data.triangles.length} tris`,
+    ])
+  );
+  initGlossaryTooltips({ staticRoots: [statusEl] });
 };
 
 function redraw() {

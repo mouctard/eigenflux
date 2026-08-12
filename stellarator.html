@@ -4,6 +4,18 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>eigenflux — stellarator flux surfaces</title>
+<script>
+// Anti-flash-of-wrong-theme: applied before the stylesheet paints anything. Dark is the
+// default (no stored preference, or "dark"); only an explicit "light" choice opts out.
+// See src/app/theme.js for the toggle control that keeps this in sync.
+(function () {
+  try {
+    if (localStorage.getItem("eigenflux-theme") === "light") {
+      document.documentElement.classList.add("light");
+    }
+  } catch (e) {}
+})();
+</script>
 <link rel="stylesheet" href="styles/style.css">
 <script type="importmap">
 {
@@ -17,8 +29,17 @@
 
 <header>
   <nav class="crosslink"><a href="index.html">← Tokamak Grad–Shafranov solver</a></nav>
-  <h1>eigenflux — stellarators</h1>
-  <p class="tagline">Nested flux surfaces from real, DESC-solved 3D MHD equilibria.</p>
+  <div class="header-top">
+    <div>
+      <h1>eigenflux — stellarators</h1>
+      <p class="tagline">Nested flux surfaces from real, DESC-solved 3D MHD equilibria.</p>
+    </div>
+    <label class="theme-toggle">
+      <input type="checkbox" id="theme-toggle-input">
+      <span class="theme-toggle-track"><span class="theme-toggle-thumb"></span></span>
+      <span id="theme-toggle-text">Light mode</span>
+    </label>
+  </div>
 </header>
 
 <main>
@@ -57,6 +78,10 @@
           <option value="10000">10000×</option>
         </select>
       </label>
+      <label class="mesh-toggle-label">
+        <input type="checkbox" id="loss-toggle">
+        Include neoclassical ripple transport losses
+      </label>
       <p class="reactor-caption">
         Same 0D burn model as the <a href="index.html">tokamak page</a>, driven by this
         configuration's actual solved-equilibrium plasma volume (see "How this works" for
@@ -69,6 +94,16 @@
         glow brightness directly tracks instantaneous fusion power — smoothly, with no
         periodic pulsing layered on top (see "How this works" for why not).
       </p>
+      <p class="reactor-caption">
+        <strong>Include neoclassical ripple transport losses</strong> adds a real, named loss
+        channel unique to stellarators: unlike a tokamak's axisymmetric field, a stellarator's
+        field strength varies helically along a flux surface, trapping particles in local
+        ripples whose drift orbits don't close on themselves. Random Coulomb collisions
+        occasionally kick a trapped particle onto a loss orbit that carries it to the wall
+        before it thermalizes — a genuinely stochastic process, so this is simulated as a real
+        random (Poisson) event process, not a periodic wobble. See "How this works" for the
+        physics and why the effect size here is illustrative, not calibrated per device.
+      </p>
     </div>
     <div class="preset-group">
       <h2>Timeframe</h2>
@@ -77,6 +112,7 @@
   </section>
 
   <section class="canvas-wrap">
+    <h2 class="tokamak3d-heading">3D View <span class="tokamak3d-hint">— drag to rotate, scroll to zoom</span></h2>
     <div id="viewer" class="viewer3d"></div>
     <p id="status" class="status">Loading…</p>
 
@@ -247,6 +283,40 @@
       oscillation, now driving its D-α shot-trace spike — <em>do</em> have real stellarator
       precedent, e.g. W7-AS's H-mode ELMs, but ELMs are an edge phenomenon, not a core one, so
       they don't belong on this light either.)
+    </p>
+
+    <h3>Neoclassical ripple transport losses (the checkbox)</h3>
+    <p>
+      A tokamak's field is axisymmetric: |B| varies with major radius but not with toroidal
+      angle, so a trapped ("banana-orbit") particle's guiding center drifts stay bounded and
+      the orbit closes on itself. A stellarator's field also varies helically <em>along</em>
+      each flux surface — real, physical ripple, not a numerical artifact — so trapped
+      particles instead follow more complex drift orbits that, in general, don't close.
+      Coulomb collisions continuously (and randomly) kick a particle's pitch angle; occasionally
+      that kick is enough to put a particle onto one of these open drift orbits, carrying it
+      to the wall before it thermalizes. This is <strong>neoclassical transport</strong>, and
+      in the long-mean-free-path ("1/ν") collisionality regime relevant at reactor
+      temperatures — hot plasma means infrequent collisions — it scales unfavorably as
+      collisionality drops, exactly the wrong direction for a power plant. It's a real,
+      major-enough problem that all three configurations on this page exist specifically to
+      fight it: W7-X was numerically optimized for quasi-isodynamic confinement, HSX for
+      quasi-helical symmetry, and NCSX for quasi-axisymmetry — different routes to the same
+      goal, a magnetic-field-strength symmetry that makes trapped-particle orbits close again
+      the way a tokamak's do.
+    </p>
+    <p>
+      Checking the box models this as what it actually is — a real random process, not a
+      periodic one. Loss "events" arrive as a Poisson process (exponentially-distributed
+      random real-time intervals, via <code>Math.random()</code>, not a periodic function of
+      time), each briefly derating displayed power and energy by a random fraction before
+      recovering, and briefly dimming the outermost flux surface in the 3D view. The event
+      rate and per-event loss fraction (see <code>src/fusion/neoclassicalLoss.js</code>) are
+      <strong>illustrative</strong>: the literature is unambiguous that this channel is real
+      and can be severe, but doesn't offer one trustworthy number to calibrate a 0D model
+      against, let alone a per-device split between these three specific configurations — so
+      the same range is used for all three here rather than fabricate precision the physics
+      doesn't actually support. Unchecked (the default) matches every other stat on this page:
+      the idealized case, with this loss channel not modeled.
     </p>
 
     <p class="dependencies">Uses a vendored, MIT-licensed copy of three.js for rendering — the only dependency in this project. Nothing else is fetched from anywhere at runtime.</p>

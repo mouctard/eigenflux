@@ -2,10 +2,14 @@
 import * as THREE from "three";
 import { OrbitControls } from "../../vendor/three/controls/OrbitControls.js";
 import { colormapRGB } from "../app/colormap.js";
+import { getCanvasPalette, onThemeChange } from "../app/theme.js";
 
 export function createViewer(container) {
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0xfafaf8);
+  scene.background = new THREE.Color(getCanvasPalette().sceneBg);
+  onThemeChange(() => {
+    scene.background = new THREE.Color(getCanvasPalette().sceneBg);
+  });
 
   const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.01, 100);
   camera.position.set(3, 2, 3);
@@ -119,6 +123,7 @@ export function createViewer(container) {
       cz += inner.Z[k];
     }
     coreLight.position.set(cx / inner.X.length, cz / inner.X.length, cy / inner.X.length);
+    applyOpacity();
   }
 
   // Called every burn-simulation frame while playing, with the same real, already-computed
@@ -134,13 +139,34 @@ export function createViewer(container) {
     if (innermostMaterial) innermostMaterial.emissiveIntensity = 0.1 + level * 0.9;
   }
 
+  let currentFuelFrac = 1;
+  let currentLossFactor = 1;
+
+  // Both setFuelFraction and setLossFlicker write to the same material.opacity, so they're
+  // composed multiplicatively through one shared function rather than each overwriting the
+  // other's effect.
+  function applyOpacity() {
+    const f = Math.max(0, Math.min(1, currentFuelFrac));
+    const lastIdx = surfaceMeshes.length - 1;
+    surfaceMeshes.forEach((mesh, i) => {
+      const lossMul = i === lastIdx ? currentLossFactor : 1;
+      mesh.material.opacity = surfaceBaseOpacity[i] * (0.12 + 0.88 * f) * lossMul;
+    });
+  }
+
   // Fades the flux surfaces toward the background as fuel depletes -- same presentation cue
   // as the tokamak page's 2D/3D views, see src/app/render.js's comment.
   function setFuelFraction(frac) {
-    const f = Math.max(0, Math.min(1, frac));
-    surfaceMeshes.forEach((mesh, i) => {
-      mesh.material.opacity = surfaceBaseOpacity[i] * (0.12 + 0.88 * f);
-    });
+    currentFuelFrac = frac;
+    applyOpacity();
+  }
+
+  // Briefly dims the outermost surface on a neoclassical-loss event (src/fusion/
+  // neoclassicalLoss.js) -- 1 = no loss, lower = mid-event. Only the outermost surface,
+  // since this models particles lost at the boundary, not a core effect.
+  function setLossFlicker(factor) {
+    currentLossFactor = Math.max(0, Math.min(1, factor));
+    applyOpacity();
   }
 
   function onResize() {
@@ -159,5 +185,5 @@ export function createViewer(container) {
   }
   animate();
 
-  return { setSurfaces, setGlow, setFuelFraction, onResize };
+  return { setSurfaces, setGlow, setFuelFraction, setLossFlicker, onResize };
 }
