@@ -677,7 +677,22 @@ canvas {
 
 .shot-chart-wrap {
   margin-top: 0.5rem;
+  position: relative;
 }
+
+/* One invisible hover target per shotChart.js strip (top to bottom), so each row of the
+   canvas-drawn chart can trigger its own glossary tooltip -- see index.html for the markup. */
+.shot-chart-hover {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 25%;
+  cursor: help;
+}
+.shot-chart-hover:nth-child(2) { top: 0%; }
+.shot-chart-hover:nth-child(3) { top: 25%; }
+.shot-chart-hover:nth-child(4) { top: 50%; }
+.shot-chart-hover:nth-child(5) { top: 75%; }
 
 .shot-chart-wrap canvas {
   width: 100%;
@@ -1043,6 +1058,55 @@ footer a {
   color: var(--body-text);
   font-size: 0.82rem;
   line-height: 1.45;
+}
+
+/* ---- Variable glossary tooltips (replaces the old standalone Variables dropdown) -------- */
+
+.var-term {
+  border-bottom: 1px dotted var(--muted);
+  cursor: help;
+}
+
+.var-term:hover,
+.var-term:focus-visible {
+  border-bottom-color: var(--accent);
+  outline: none;
+}
+
+.var-tooltip {
+  position: fixed;
+  z-index: 40;
+  width: 320px;
+  max-width: 88vw;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.7rem 0.85rem;
+  box-shadow: var(--shadow);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-2px);
+  transition: opacity 0.1s ease, transform 0.1s ease;
+  pointer-events: none;
+}
+
+.var-tooltip.visible {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.var-tooltip-term {
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--fg);
+  margin-bottom: 0.3rem;
+}
+
+.var-tooltip-body {
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: var(--body-text);
 }
 
 .dropdown-panel .faq-q {

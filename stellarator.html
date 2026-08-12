@@ -66,7 +66,8 @@
         pays the cost again. <strong>Deplete</strong> burns fuel down following
         <code>n(t) = n₀/(1 + n₀⟨σv⟩t)</code>; <strong>Sustained</strong> holds density
         constant. The flux surfaces visibly fade as fuel depletes, and the core surface's
-        pulsing glow tracks instantaneous fusion power.
+        glow brightness directly tracks instantaneous fusion power — smoothly, with no
+        periodic pulsing layered on top (see "How this works" for why not).
       </p>
     </div>
     <div class="preset-group">
@@ -122,6 +123,18 @@
         </div>
       </div>
 
+      <div class="stat-row">
+        <div class="stat-tile">
+          <div class="stat-value" id="stat-wth">0.0 MJ</div>
+          <div class="stat-label">W<sub>th</sub></div>
+        </div>
+        <div class="stat-tile">
+          <div class="stat-value" id="stat-taue">— s</div>
+          <div class="stat-label">τ<sub>E</sub></div>
+          <div class="stat-sub">minimal power balance, illustrative P_heat -- see "How this works"</div>
+        </div>
+      </div>
+
       <div class="burn-chart-wrap">
         <canvas id="burn-chart" width="640" height="220"></canvas>
         <p id="burn-chart-caption" class="burn-chart-caption"></p>
@@ -130,8 +143,8 @@
   </section>
 </main>
 
-<section class="how-it-works">
-  <button id="how-toggle" aria-expanded="false">How this works ▾</button>
+<details class="how-it-works">
+  <summary id="how-toggle">How this works</summary>
   <div id="how-panel" class="how-panel">
 
     <p>
@@ -208,9 +221,37 @@
       tokamak page's 2D and 3D views.
     </p>
 
+    <h3>W_th and τ_E: why there's no sawtooth here</h3>
+    <p>
+      W<sub>th</sub> = 3·n·T·V and τ<sub>E</sub> = W<sub>th</sub>/P<sub>loss</sub> use a
+      minimal power balance: an illustrative total input-heating figure (this page has no
+      Bt/I<sub>p</sub>/heating "Operating point" preset to derive one from the way the tokamak
+      page does — see <code>ILLUSTRATIVE_OPERATING_POINT.P_heat_MW</code> in
+      <code>src/stellarator/presets.js</code>) minus the same Bremsstrahlung radiated-power
+      estimate the tokamak page uses, at steady state (this page's T/n don't ramp the way the
+      tokamak page's do, so dW/dt = 0). τ<sub>E</sub> is shown as a plain diagnostic number
+      only.
+    </p>
+    <p>
+      It's deliberately <strong>not</strong> used to drive a core-brightness throb the way the
+      tokamak page's τ<sub>E</sub> drives a real sawtooth relaxation oscillation there. Checked
+      before assuming otherwise: a tokamak sawtooth is a specific instability (the m/n=1/1
+      internal kink) tied to a q=1 rational surface created by a net toroidal current profile.
+      W7-X's vacuum rotational-transform profile is flat and doesn't cross a low-order
+      rational surface at all — sawtooth-like crashes have only been produced there
+      deliberately, with off-axis electron-cyclotron current drive pushing the profile through
+      one, which is not this page's modeled scenario. Applying the tokamak's sawtooth here
+      would be a physically dishonest transplant, not just an illustrative simplification, so
+      the core glow instead tracks the real P(t)/P<sub>0</sub> directly with no oscillation
+      layered on top. (Edge-localized modes — the tokamak page's other real relaxation
+      oscillation, now driving its D-α shot-trace spike — <em>do</em> have real stellarator
+      precedent, e.g. W7-AS's H-mode ELMs, but ELMs are an edge phenomenon, not a core one, so
+      they don't belong on this light either.)
+    </p>
+
     <p class="dependencies">Uses a vendored, MIT-licensed copy of three.js for rendering — the only dependency in this project. Nothing else is fetched from anywhere at runtime.</p>
   </div>
-</section>
+</details>
 
 <footer>
   <p>eigenflux — inspired by <a href="https://baselashraf81.github.io/eigendrum/" target="_blank" rel="noopener">eigendrum</a>.</p>

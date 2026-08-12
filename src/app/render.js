@@ -1,4 +1,4 @@
-// Canvas rendering: pressure colormap (flat-shaded triangles) + flux-surface contours +
+// Canvas rendering: temperature colormap (flat-shaded triangles) + flux-surface contours +
 // boundary outline + magnetic-axis marker.
 import { contoursForLevels } from "./contour.js";
 import { colormap, colormapRGB } from "./colormap.js";
@@ -23,8 +23,10 @@ function fitTransform(mesh, width, height, marginFrac = 0.08) {
   return ([R, Z]) => [offX + (R - minR) * scale, height - (offY + (Z - minZ) * scale)];
 }
 
+// glow is always a plain object now (never null) -- powerLevel is 0 when there's no active
+// reaction, which zeroes the throb term below naturally, so callers never need a null check.
 export function renderEquilibrium(ctx, canvas, mesh, psi, pressureField, psiAxis, opts = {}) {
-  const { showMesh = false, glow = null, fuelFrac = 1 } = opts;
+  const { showMesh = false, glow = { powerLevel: 0, throb: 1 }, fuelFrac = 1, ignitionFrac = 1 } = opts;
   const { width, height } = canvas;
   const toPx = fitTransform(mesh, width, height);
   const palette = getCanvasPalette();
@@ -32,11 +34,36 @@ export function renderEquilibrium(ctx, canvas, mesh, psi, pressureField, psiAxis
   ctx.fillStyle = palette.canvasBg;
   ctx.fillRect(0, 0, width, height);
 
+  // Ignition gate: before Play (and while ramping back down after Reset), there's no
+  // energized confining field and no hot plasma to see, so the fill lerps from the page
+  // background up to the full temperature colormap as `ignitionFrac` (the same 1.4s-up/
+  // 1.1s-down ramp already driving the Bt/Ip/heating diagnostics in main.js) rises -- the
+  // chamber is dark until the field is actually on, same as it would be for real.
+  const ig = Math.max(0, Math.min(1, ignitionFrac));
+  const bgRGB = hexToRgb(palette.canvasBg);
+
+  // Sawtooth "throb": glow.throb is the real, asymmetric core-temperature relaxation
+  // envelope (slow reheat, fast crash -- see src/fusion/sawtooth.js for the physics and
+  // citations, not a sin() oscillation), in [1-crashDepth, 1]. It modulates how far past the
+  // steady-state profile the core brightens, weighted toward the core (t close to 1, where
+  // the reaction actually happens) so the edge stays a stable read on temperature. Because
+  // this only ever recolors triangles that are already part of the solved plasma mesh (no
+  // separate shape drawn on top), it's geometrically incapable of extending past the last
+  // closed flux surface, for any boundary shape.
+  const level = Math.max(0, Math.min(1, glow.powerLevel));
+  const throbBoost = ig * level * Math.max(0, Math.min(1, glow.throb));
+  const [hotR, hotG, hotB] = colormapRGB(1); // white-hot end of the colormap
+
   const maxP = pressureField(0);
   for (const tri of mesh.triangles) {
     const psiC = (psi[tri[0]] + psi[tri[1]] + psi[tri[2]]) / 3;
     const psiN = psiAxis > 0 ? 1 - psiC / psiAxis : 1;
     const clamped = Math.max(0, Math.min(1, psiN));
+    // Temperature-shape proxy: the solved profile p(psiN) reused as a normalized temperature
+    // shape T(psiN)/T0, valid under this page's flat-density assumption (pressure = n*T with
+    // n treated as spatially uniform -- the same simplification the burn model already makes
+    // everywhere else, since its n0_m3 is a single scalar, not a profile). See "Units" in the
+    // how-it-works panel.
     const t = maxP > 0 ? pressureField(clamped) / maxP : 0;
 
     const [p0, p1, p2] = tri.map((i) => toPx(mesh.nodes[i]));
@@ -45,7 +72,22 @@ export function renderEquilibrium(ctx, canvas, mesh, psi, pressureField, psiAxis
     ctx.lineTo(p1[0], p1[1]);
     ctx.lineTo(p2[0], p2[1]);
     ctx.closePath();
-    ctx.fillStyle = colormap(t);
+
+    const [cr, cg, cb] = colormapRGB(t);
+    // Base: lerp background -> full temperature color by ignition fraction.
+    let r = bgRGB[0] + (cr - bgRGB[0]) * ig;
+    let g = bgRGB[1] + (cg - bgRGB[1]) * ig;
+    let b = bgRGB[2] + (cb - bgRGB[2]) * ig;
+    // Core throb: blend further toward white-hot, core-weighted, tracking the sawtooth
+    // envelope directly -- brightest right before a crash, dimmer just after, so the
+    // highlight itself lives through the real relaxation cycle instead of a constant boost.
+    if (throbBoost > 0) {
+      const mix = throbBoost * t * t * 0.55;
+      r += (hotR - r) * mix;
+      g += (hotG - g) * mix;
+      b += (hotB - b) * mix;
+    }
+    ctx.fillStyle = `rgb(${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)})`;
     ctx.fill();
 
     if (showMesh) {
@@ -55,11 +97,11 @@ export function renderEquilibrium(ctx, canvas, mesh, psi, pressureField, psiAxis
     }
   }
 
-  // Fuel-depletion cue: wash the pressure fill toward the page background as fuel runs out,
-  // so a spent plasma visibly fades rather than looking identical to a full one. This is a
-  // presentation cue tied to the burn model's n(t)/n0, not a re-solved equilibrium -- the
-  // Grad-Shafranov shape itself stays the one already-solved static solve (see "Live fuel
-  // burn" in the how-it-works panel). Drawn before contours/boundary so those stay crisp.
+  // Fuel-depletion cue: wash the fill toward the page background as fuel runs out, so a spent
+  // plasma visibly fades rather than looking identical to a full one. This is a presentation
+  // cue tied to the burn model's n(t)/n0, not a re-solved equilibrium -- the Grad-Shafranov
+  // shape itself stays the one already-solved static solve (see "Live fuel burn" in the
+  // how-it-works panel). Drawn before contours/boundary so those stay crisp.
   const frac = Math.max(0, Math.min(1, fuelFrac));
   if (frac < 1) {
     ctx.fillStyle = hexToRgba(palette.canvasBg, (1 - frac) * 0.88);
@@ -69,8 +111,6 @@ export function renderEquilibrium(ctx, canvas, mesh, psi, pressureField, psiAxis
   let axisIdx = 0;
   for (let i = 1; i < psi.length; i++) if (psi[i] > psi[axisIdx]) axisIdx = i;
   const [ax, ay] = toPx(mesh.nodes[axisIdx]);
-
-  if (glow) drawGlow(ctx, width, height, ax, ay, glow);
 
   const nLevels = 12;
   const levels = [];
@@ -106,37 +146,12 @@ export function renderEquilibrium(ctx, canvas, mesh, psi, pressureField, psiAxis
   ctx.fill();
 }
 
-function hexToRgba(hex, alpha) {
+function hexToRgb(hex) {
   const n = parseInt(hex.slice(1), 16);
-  const r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
-  return `rgba(${r}, ${g}, ${b}, ${alpha.toFixed(3)})`;
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
 }
 
-// Soft "hot core" glow, centered on the magnetic axis, modulated by the current fusion
-// power level (0..1, normalized to initial power) and a slow pulse -- the reaction-rate
-// visual tie-in. Drawn under the contour lines so it reads as a glow, not an occlusion.
-function drawGlow(ctx, width, height, cx, cy, { powerLevel, pulsePhase }) {
-  const level = Math.max(0, Math.min(1, powerLevel));
-  const pulse = 0.7 + 0.3 * Math.sin(pulsePhase);
-  // Sized to extend past the already-bright core into the darker mid-radius flux
-  // surfaces, where a screen-blended warm glow actually reads as animated -- blending
-  // more warm-on-warm at the core center barely changes anything visually.
-  const radius = Math.min(width, height) * (0.32 + 0.34 * level) * pulse;
-  const alpha = 0.22 + 0.4 * level * pulse;
-
-  const [hotR, hotG, hotB] = colormapRGB(1); // bright yellow, the colormap's hot end
-  const [midR, midG, midB] = colormapRGB(0.85); // yellow-orange
-
-  const gradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.max(radius, 1));
-  gradient.addColorStop(0, `rgba(${hotR}, ${hotG}, ${hotB}, ${alpha})`);
-  gradient.addColorStop(0.4, `rgba(${midR}, ${midG}, ${midB}, ${alpha * 0.7})`);
-  gradient.addColorStop(1, `rgba(${midR}, ${midG}, ${midB}, 0)`);
-
-  ctx.save();
-  ctx.globalCompositeOperation = "screen";
-  ctx.fillStyle = gradient;
-  ctx.beginPath();
-  ctx.arc(cx, cy, Math.max(radius, 1), 0, 2 * Math.PI);
-  ctx.fill();
-  ctx.restore();
+function hexToRgba(hex, alpha) {
+  const [r, g, b] = hexToRgb(hex);
+  return `rgba(${r}, ${g}, ${b}, ${alpha.toFixed(3)})`;
 }

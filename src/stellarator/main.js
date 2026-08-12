@@ -8,9 +8,11 @@ import { CAPTURE_PRESETS, convertToElectric } from "../fusion/capture.js";
 import { createBurnModel } from "../fusion/burn.js";
 import { ITER_MAGNET_ENERGY_J } from "../fusion/activation.js";
 import { renderBurnChart } from "../app/burnChart.js";
-import { buildPresetButtons, setActive, wireHowItWorks, wireKeyboardShortcuts, buildFuelGauges } from "../app/ui.js";
+import { buildPresetButtons, setActive, wireKeyboardShortcuts, buildFuelGauges } from "../app/ui.js";
 import { formatTime, formatPower, formatEnergy, formatSignedEnergy, formatRate, formatDensity } from "../app/format.js";
 import { paintLegendBar } from "../app/legend.js";
+import { computeThermalEnergyJ, estimateRadiatedPowerMW } from "../fusion/diagnostics.js";
+import { initGlossaryTooltips } from "../app/tooltip.js";
 
 const container = document.getElementById("viewer");
 const statusEl = document.getElementById("status");
@@ -128,7 +130,11 @@ const timeframeButtons = buildPresetButtons(
   TIMEFRAME_HOTKEYS
 );
 
-wireHowItWorks(document.getElementById("how-toggle"), document.getElementById("how-panel"));
+// Reuses the tokamak page's variable-glossary tooltip system for the two new W_th/tau_E
+// tiles above -- same GLOSSARY entries, no stellarator-specific content needed.
+initGlossaryTooltips({
+  proseRoots: [document.querySelector(".reactor-readout"), document.getElementById("how-panel")],
+});
 wireKeyboardShortcuts({
   ...Object.fromEntries(CONFIG_HOTKEYS.map((k, i) => [k, () => configButtons[configKeys[i]].click()])),
   ...Object.fromEntries(FUEL_HOTKEYS.map((k, i) => [k, () => fuelButtons[fuelKeys[i]].click()])),
@@ -147,6 +153,8 @@ const statRateEl = document.getElementById("stat-rate");
 const statElectricPowerEl = document.getElementById("stat-electric-power");
 const statElectricEnergyEl = document.getElementById("stat-electric-energy");
 const statNetEnergyEl = document.getElementById("stat-net-energy");
+const statWthEl = document.getElementById("stat-wth");
+const statTauEEl = document.getElementById("stat-taue");
 const burnChartCanvas = document.getElementById("burn-chart");
 const burnChartCaption = document.getElementById("burn-chart-caption");
 const burnToggleBtn = document.getElementById("burn-toggle");
@@ -272,9 +280,25 @@ function renderBurnState(now) {
   statElectricEnergyEl.textContent = formatEnergy(E_electric);
   statNetEnergyEl.textContent = formatSignedEnergy(E_electric - activationEnergySpent_J);
 
+  // Minimal power balance -> tau_E = W_th/P_loss: a plain diagnostic number, deliberately
+  // NOT used to drive any core-relaxation oscillation the way the tokamak page's tau_E drives
+  // its sawtooth (see the comment on ILLUSTRATIVE_OPERATING_POINT.P_heat_MW in presets.js --
+  // that instability is tokamak-specific and doesn't apply to these configurations as
+  // modeled here). Steady state assumed (dW/dt = 0): unlike the tokamak page's ramping
+  // operating point, this page's illustrative T/n is constant once ignited.
+  const Wth_J = computeThermalEnergyJ(n, ILLUSTRATIVE_OPERATING_POINT.T_keV, lastVolume_m3 || 0);
+  const P_rad_MW = estimateRadiatedPowerMW(n / 1e20, ILLUSTRATIVE_OPERATING_POINT.T_keV);
+  const P_loss_MW = ILLUSTRATIVE_OPERATING_POINT.P_heat_MW - P_rad_MW;
+  const tauE_s = P_loss_MW > 0 ? Wth_J / (P_loss_MW * 1e6) : 0;
+  statWthEl.textContent = formatEnergy(Wth_J);
+  statTauEEl.textContent = tauE_s > 0 ? tauE_s.toFixed(2) + " s" : "—";
+
+  // Core glow tracks the real, already-computed P(t)/P0 directly -- no periodic oscillation
+  // layered on top (see above for why not a sawtooth; ELMs are real in stellarators too, per
+  // W7-AS H-mode observations, but are an edge phenomenon, not a core one, so they don't
+  // belong on this light either).
   const powerLevel = burnModel.P0 > 0 ? P / burnModel.P0 : 0;
-  const pulseHz = 0.3 + 1.2 * powerLevel;
-  const glow = burnPlaying ? { powerLevel, pulsePhase: (now / 1000) * pulseHz * 2 * Math.PI } : null;
+  const glow = burnPlaying ? { powerLevel } : null;
   viewer.setGlow(glow);
   viewer.setFuelFraction(frac);
 

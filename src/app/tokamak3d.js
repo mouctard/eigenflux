@@ -284,15 +284,20 @@ export function createTokamakViewer(container) {
   }
 
   // Called every burn-simulation frame (renderBurnState) while playing, with the same
-  // powerLevel/pulsePhase already driving the 2D core glow (src/app/render.js) -- so the 3D
-  // view pulses in lockstep with the 2D one, both tied to the same validated P(t)/P0.
-  function setGlow(glow) {
-    const level = glow ? Math.max(0, Math.min(1, glow.powerLevel)) : 0;
-    const pulse = glow ? 0.7 + 0.3 * Math.sin(glow.pulsePhase) : 0;
-    coreLight.intensity = level * pulse * 3;
-    if (surfaceMeshes[0]) surfaceMeshes[0].material.emissiveIntensity = 0.12 + level * pulse * 0.8;
+  // powerLevel/throb (real sawtooth relaxation envelope, src/fusion/sawtooth.js) already
+  // driving the 2D core glow (src/app/render.js) -- so the 3D view throbs in lockstep with
+  // the 2D one, both tied to the same validated P(t)/P0 and tau_E. ignitionFrac (the same
+  // magnet ramp driving setMagnetActive) keeps the core light off until the field is
+  // actually energized, matching the 2D view's unlit-until-Play fill.
+  function setGlow(glow, ignitionFrac = 1) {
+    const ig = Math.max(0, Math.min(1, ignitionFrac));
+    const level = Math.max(0, Math.min(1, glow.powerLevel));
+    const throb = Math.max(0, Math.min(1, glow.throb));
+    const pulse = ig * level * throb;
+    coreLight.intensity = pulse * 3;
+    if (surfaceMeshes[0]) surfaceMeshes[0].material.emissiveIntensity = 0.12 + pulse * 0.8;
     for (const light of cabinetLights) {
-      light.material.emissiveIntensity = 0.3 + level * pulse * 1.2;
+      light.material.emissiveIntensity = 0.3 + pulse * 1.2;
     }
   }
 

@@ -121,14 +121,17 @@ export function createViewer(container) {
     coreLight.position.set(cx / inner.X.length, cz / inner.X.length, cy / inner.X.length);
   }
 
-  // Called every burn-simulation frame while playing, with the same powerLevel/pulsePhase
-  // driving the tokamak page's 2D and 3D glow (src/app/render.js, src/app/tokamak3d.js) --
-  // same validated P(t)/P0, three synchronized views.
+  // Called every burn-simulation frame while playing, with the same real, already-computed
+  // powerLevel = P(t)/P0 driving the tokamak page's views (src/app/render.js,
+  // src/app/tokamak3d.js). Unlike those, there's no periodic throb layered on top here --
+  // the tokamak's is a real sawtooth relaxation oscillation, a tokamak-specific instability
+  // that doesn't apply to these stellarator configurations as modeled on this page (see
+  // src/stellarator/presets.js's ILLUSTRATIVE_OPERATING_POINT comment for the physics), so
+  // this stays a smooth, direct read of the real burn power instead of inventing one.
   function setGlow(glow) {
     const level = glow ? Math.max(0, Math.min(1, glow.powerLevel)) : 0;
-    const pulse = glow ? 0.7 + 0.3 * Math.sin(glow.pulsePhase) : 0;
-    coreLight.intensity = level * pulse * 4;
-    if (innermostMaterial) innermostMaterial.emissiveIntensity = 0.1 + level * pulse * 0.9;
+    coreLight.intensity = level * 4;
+    if (innermostMaterial) innermostMaterial.emissiveIntensity = 0.1 + level * 0.9;
   }
 
   // Fades the flux surfaces toward the background as fuel depletes -- same presentation cue

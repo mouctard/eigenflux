@@ -7,12 +7,15 @@ import { createBurnModel, computeVolume } from "../fusion/burn.js";
 import { FUSION_OPERATING_POINTS } from "../fusion/presets.js";
 import { OPERATING_POINT_PRESETS } from "../fusion/operatingPoints.js";
 import { ITER_MAGNET_ENERGY_J } from "../fusion/activation.js";
+import { sawtoothEnvelope } from "../fusion/sawtooth.js";
+import { elmFrequencyHz, elmEnvelope } from "../fusion/elm.js";
 import { compileExpr } from "../math/exprParser.js";
 import { renderEquilibrium } from "./render.js";
 import { renderShotChart } from "./shotChart.js";
 import { createTokamakViewer } from "./tokamak3d.js";
 import { buildPresetButtons, setActive, wireDropdown, wireKeyboardShortcuts, buildFuelGauges } from "./ui.js";
 import { wireThemeToggle } from "./theme.js";
+import { initGlossaryTooltips } from "./tooltip.js";
 import {
   formatTime,
   formatPower,
@@ -261,8 +264,21 @@ customShapeInput.addEventListener("blur", applyCustomShape);
 // statement after it -- including wiring the Play button). If something in here does fail, it
 // fails loud in the console and the page keeps working; it doesn't fail silent and inert.
 try {
-  wireDropdown(document.getElementById("variables-dropdown"));
   wireDropdown(document.getElementById("faq-dropdown"));
+
+  // Variable-glossary tooltips: wires the dashboard's already-tagged data-var elements
+  // (badges/tiles/power-rows/shot-trace overlay) and auto-wraps every cataloged symbol
+  // mentioned in the prose panels below, replacing the old standalone Variables dropdown.
+  initGlossaryTooltips({
+    staticRoots: [document.body],
+    proseRoots: [
+      document.getElementById("slice-readout"),
+      document.querySelector(".reactor-readout"),
+      document.getElementById("how-panel"),
+      document.getElementById("faq-panel"),
+      ...document.querySelectorAll(".collapsible-panel"),
+    ],
+  });
 
   const themeToggleInput = document.getElementById("theme-toggle-input");
   const themeToggleText = document.getElementById("theme-toggle-text");
@@ -462,10 +478,15 @@ function shotTexture(t) {
   return 1 + 0.015 * Math.sin(2 * Math.PI * 0.7 * t) + 0.01 * Math.sin(2 * Math.PI * 2.3 * t + 1.0);
 }
 
-// Illustrative ELM-like D-alpha spike train layered on top of a steady base level.
-function dAlphaSignal(base, t) {
-  const spike = Math.pow(Math.max(0, Math.sin(2 * Math.PI * 0.15 * t)), 8);
-  return base * (1 + 0.15 * Math.sin(2 * Math.PI * 0.5 * t) + 1.2 * spike);
+// Real Type-I ELM D-alpha spike train (see src/fusion/elm.js for the physics and citations):
+// a sharp rise at each crash, decaying exponentially as recycling neutrals clear, at a
+// frequency derived from this page's own live P_aux/P_LH/P_in/W_th diagnostics -- not a fixed
+// sin() oscillation. elmHz = 0 below the H-mode threshold collapses this to a flat baseline,
+// consistent with L-mode having no pedestal transport barrier to relax.
+function dAlphaSignal(base, elmHz, elapsedRealSeconds) {
+  if (elmHz <= 0) return base;
+  const spike = elmEnvelope(elapsedRealSeconds, 1 / elmHz);
+  return base * (1 + 1.2 * spike);
 }
 
 function renderDiagnostics(now, elapsedSim, P_fusion_W, chargedFrac) {
@@ -541,7 +562,8 @@ function renderDiagnostics(now, elapsedSim, P_fusion_W, chargedFrac) {
   const fdet = estimateDetachmentFraction(P_rad, balance.P_loss);
   const tPulse_s = shotStartReal != null ? (now - shotStartReal) / 1000 : 0;
   const ts_C = estimateSurfaceTempC(qi_MWm2, tPulse_s);
-  const dAlpha = dAlphaSignal(estimateDAlphaBase(balance.P_loss), elapsedSim);
+  const elmHz = elmFrequencyHz(P_aux, P_LH, balance.P_in, Wth_J);
+  const dAlpha = dAlphaSignal(estimateDAlphaBase(balance.P_loss), elmHz, tPulse_s);
 
   sliceBtEl.textContent = formatTesla(Bt_T);
   sliceModeEl.textContent = rampFrac > 0.05 ? (isHMode ? "H-mode" : "L-mode") : "—";
@@ -609,6 +631,7 @@ function renderDiagnostics(now, elapsedSim, P_fusion_W, chargedFrac) {
   );
 
   viewer3d.setMagnetActive(rampFrac);
+  return tauE_actual;
 }
 
 const BURN_MODES = { deplete: { label: "Deplete" }, sustained: { label: "Sustained" } };
@@ -767,15 +790,20 @@ function renderBurnState(now) {
     faqHomesPoweredEl.textContent = Math.round(homesPowered).toLocaleString();
   }
 
+  // renderDiagnostics computes (among other things) the real tau_E = W_th/P_loss diagnostic
+  // already shown in the dashboard -- called here, before the glow is built, so the sawtooth
+  // throb below can use that same real number for its period instead of an arbitrary constant.
+  const tauE_s = renderDiagnostics(now, burnElapsedSim, P, burnModel.chargedFrac);
+
   const powerLevel = burnModel.P0 > 0 ? P / burnModel.P0 : 0;
-  const pulseHz = 0.3 + 1.2 * powerLevel;
-  state.glow = burnPlaying ? { powerLevel, pulsePhase: (now / 1000) * pulseHz * 2 * Math.PI } : null;
+  const shotElapsedReal_s = burnPlaying && shotStartReal != null ? (now - shotStartReal) / 1000 : 0;
+  const throb = sawtoothEnvelope(shotElapsedReal_s, tauE_s);
+  state.glow = { powerLevel: burnPlaying ? powerLevel : 0, throb };
+  state.ignitionFrac = rampFrac;
   state.fuelFrac = frac;
   redraw();
-  viewer3d.setGlow(state.glow);
+  viewer3d.setGlow(state.glow, rampFrac);
   viewer3d.setFuelFraction(frac);
-
-  renderDiagnostics(now, burnElapsedSim, P, burnModel.chargedFrac);
 }
 
 // ---- Equilibrium solve --------------------------------------------------------------
@@ -814,8 +842,9 @@ function redraw() {
   const pressureField = buildPressureProfile(PROFILE_PRESETS[lastResult.profileKey]);
   renderEquilibrium(ctx, canvas, mesh, lastResult.psi, pressureField, lastResult.psiAxis, {
     showMesh: state.showMesh,
-    glow: state.glow || null,
+    glow: state.glow || { powerLevel: 0, throb: 1 },
     fuelFrac: state.fuelFrac == null ? 1 : state.fuelFrac,
+    ignitionFrac: state.ignitionFrac == null ? 0 : state.ignitionFrac,
   });
 }
 
