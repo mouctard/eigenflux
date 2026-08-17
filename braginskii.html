@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>eigenflux — Braginskii edge plasma</title>
+<script>
+(function () {
+  try {
+    if (localStorage.getItem("eigenflux-theme") === "light") {
+      document.documentElement.classList.add("light");
+    }
+  } catch (e) {}
+})();
+</script>
+<link rel="stylesheet" href="styles/style.css">
+</head>
+<body>
+
+<header>
+  <nav class="crosslink"><a href="index.html">← Tokamak Grad–Shafranov solver</a></nav>
+  <div class="header-top">
+    <div>
+      <h1>eigenflux — Braginskii edge plasma</h1>
+      <p class="tagline">A real, time-dependent 2D two-fluid (ion+electron) Braginskii transport solve on a real ITER wall shape.</p>
+    </div>
+    <label class="theme-toggle">
+      <input type="checkbox" id="theme-toggle-input">
+      <span class="theme-toggle-track"><span class="theme-toggle-thumb"></span></span>
+      <span id="theme-toggle-text">Light mode</span>
+    </label>
+  </div>
+</header>
+
+<main>
+  <section class="controls">
+    <div class="preset-group">
+      <h2>Field</h2>
+      <div id="field-presets" class="preset-list"></div>
+    </div>
+
+    <div class="preset-group">
+      <h2>Reactor</h2>
+      <div class="reactor-buttons">
+        <button id="play-toggle" type="button" class="reactor-btn">▶ Play</button>
+        <button id="step-btn" type="button" class="reactor-btn reactor-btn-ghost">Step</button>
+        <button id="reset-btn" type="button" class="reactor-btn reactor-btn-ghost">Reset</button>
+      </div>
+      <label class="mesh-toggle-label">
+        <input type="checkbox" id="mesh-toggle">
+        Show mesh
+      </label>
+    </div>
+
+    <div class="preset-group">
+      <h2>Core boundary</h2>
+      <label class="custom-shape-label">n<sub>core</sub> (10<sup>19</sup> m⁻³)
+        <input id="core-n-input" type="number" value="2.0" min="0.1" max="20" step="0.1">
+      </label>
+      <label class="custom-shape-label">T<sub>core</sub> (eV)
+        <input id="core-t-input" type="number" value="275" min="5" max="5000" step="5">
+      </label>
+      <p class="reactor-caption">Defaults are Dekeyser et al. 2021's own real AUG 16151 core-boundary values (n=2×10¹⁹ m⁻³, T<sub>i</sub>=T<sub>e</sub>=275 eV), not arbitrary round numbers.</p>
+    </div>
+
+    <div class="preset-group">
+      <h2>Anomalous cross-field transport</h2>
+      <label class="custom-shape-label">D<sub>⊥</sub> (m²/s)
+        <input id="dperp-input" type="number" value="0.4" min="0.01" max="5" step="0.01">
+      </label>
+      <label class="custom-shape-label">χ<sub>⊥</sub> (m²/s)
+        <input id="chiperp-input" type="number" value="1.6" min="0.01" max="10" step="0.1">
+      </label>
+      <p class="reactor-caption">Defaulted to Dekeyser et al. 2021's own real AUG values, not a generic representative guess — this is the same "typical diffusive approximation" real SOLPS-ITER itself uses for the part of the problem that isn't first-principles closed.</p>
+    </div>
+
+    <div class="preset-group">
+      <h2>Sheath</h2>
+      <label class="custom-shape-label">δ<sub>i1</sub> (ion heat transmission)
+        <input id="deltai1-input" type="number" value="2.5" min="1" max="6" step="0.1">
+      </label>
+      <label class="custom-shape-label">γ<sub>e</sub> (secondary electron emission)
+        <input id="gammae-input" type="number" value="0" min="0" max="0.5" step="0.05">
+      </label>
+      <p class="reactor-caption">δ<sub>i1</sub>=2.5 is the literal value Dekeyser et al. 2021 used in their real AUG run. δ<sub>e</sub>=(1+γ<sub>e</sub>)/(1−γ<sub>e</sub>) — see "How this works" for the citations.</p>
+    </div>
+
+    <details class="collapsible-details">
+      <summary class="ghost-toggle">ℹ How this works</summary>
+      <div class="collapsible-panel">
+        <p class="reactor-caption">
+          This page time-steps the real <strong>Braginskii two-fluid equations</strong>
+          (density continuity, separate ion/electron energy equations) on a 2D poloidal
+          cross-section, using a wall boundary built from <strong>real, digitized ITER
+          divertor/inboard/top-of-machine geometry</strong> (from SOLPS-ITER's own
+          DivGeo tutorial data) plus an illustrative outboard closing arc — see
+          <code>tools/export_iter_equilibrium.py</code> and
+          <code>src/braginskii/wallGeometry.js</code>. The background magnetic field
+          (used to split transport into fast parallel / slow perpendicular components) is
+          the same real ITER equilibrium used on the tokamak page's "Show real ITER shape"
+          overlay, extended into the SOL since that equilibrium's own grid genuinely
+          reaches past the last closed flux surface.
+        </p>
+        <p class="reactor-caption">
+          Direct reference for this page's model and boundary conditions:
+          <strong>W. Dekeyser, P. Boerner, S. Voskoboynikov, V.A. Rozhansky, I. Senichenkov,
+          L. Kaveeva, I. Veselova, E. Vekshina, X. Bonnin, R.A. Pitts, M. Baelmans,
+          "Plasma edge simulations including realistic wall geometry with SOLPS-ITER,"
+          Nuclear Materials and Energy 27 (2021) 100999</strong>,
+          <a href="https://doi.org/10.1016/j.nme.2021.100999" target="_blank" rel="noopener">doi:10.1016/j.nme.2021.100999</a>
+          (open access). Parallel closures (κ<sub>∥</sub>, viscosity, electron-ion energy
+          equilibration) are the real formulas from the
+          <strong>NRL Plasma Formulary</strong> (2019 revision), itself citing
+          <strong>S.I. Braginskii, "Transport Processes in a Plasma," Reviews of Plasma
+          Physics Vol. 1 (1965)</strong> — verified against the formulary's own text before
+          being used here (see <code>src/braginskii/closures.js</code>), not transcribed
+          from memory. Sheath boundary conditions use that paper's generalized
+          Bohm-Chodura form (its eq. 7/9/10/11, no-drift limit), including its
+          incidence-angle projection — needed here because the wall is a real shape, so
+          field-incidence angle genuinely varies node to node, unlike a flux-surface
+          boundary where it's ~constant by construction.
+        </p>
+        <table>
+          <tr><th>Piece</th><th>This page</th></tr>
+          <tr><td>Parallel transport</td><td>Real Braginskii κ<sub>∥</sub>, η<sub>∥</sub>, Q<sub>ei</sub> closures</td></tr>
+          <tr><td>Perpendicular transport</td><td>Prescribed anomalous D<sub>⊥</sub>/χ<sub>⊥</sub>, defaulted to the reference paper's own real AUG values — the same "typical diffusive approximation" SOLPS-ITER itself uses, not a first-principles derivation</td></tr>
+          <tr><td>Sheath boundary</td><td>Real generalized Bohm-Chodura form, incidence-angle-projected at every wall node</td></tr>
+          <tr><td>Wall geometry</td><td>Real ITER divertor/inboard/top arc (110 digitized points) + an illustrative outboard closing arc — see the split explained in <code>data/iter_equilibrium.json</code>'s <code>wallArc</code> field</td></tr>
+          <tr><td>Mesh</td><td>Structured (ρ,θ) mesh, real-wall-following outer ring — not the reference paper's fully unstructured arbitrary-polygon mesh</td></tr>
+          <tr><td>Volume weighting</td><td>2D poloidal-plane (per unit toroidal length) — not weighted by the axisymmetric 2πR factor the tokamak page's own Grad-Shafranov solver uses</td></tr>
+          <tr><td>Parallel momentum / drifts / potential</td><td>Not solved. No u<sub>∥</sub> advection of particles or convective heat transport along field lines yet — a genuine, stated simplification, not a rounding error. The reference paper's own AUG demonstration run <em>also</em> doesn't solve the potential equation ("drifts and currents are not included"), so this isn't a shortcut unique to this page.</td></tr>
+        </table>
+      </div>
+    </details>
+  </section>
+
+  <section class="canvas-wrap">
+    <canvas id="canvas" width="640" height="640"></canvas>
+    <p id="status" class="status">Loading…</p>
+  </section>
+</main>
+
+<script type="module" src="src/braginskii/main.js"></script>
+</body>
+</html>

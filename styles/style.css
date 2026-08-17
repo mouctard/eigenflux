@@ -311,6 +311,10 @@ details[open] > summary.ghost-toggle::after {
   cursor: pointer;
 }
 
+.mesh-toggle-label[hidden] {
+  display: none;
+}
+
 .crosslink {
   margin-bottom: 0.6rem;
 }

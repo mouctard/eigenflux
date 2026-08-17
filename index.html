@@ -238,21 +238,44 @@
         <input type="checkbox" id="mesh-toggle">
         Show mesh
       </label>
+      <label class="mesh-toggle-label" id="iter-shape-toggle-label" hidden>
+        <input type="checkbox" id="iter-shape-toggle">
+        Show real ITER shape (SOLPS-ITER equilibrium)
+      </label>
       <details class="collapsible-details">
         <summary class="ghost-toggle">ℹ How Shape works</summary>
         <div class="collapsible-panel">
           <p class="reactor-caption">
             Sets the plasma boundary via the standard Miller parametrization: R₀/a (major/minor
             radius), κ (elongation, height ÷ width), δ (triangularity, D-shaping). <strong>Circular</strong>
-            has no elongation or triangularity (κ=1, δ=0); <strong>ITER-like</strong> uses real
-            ITER-like values (κ=1.7, δ=0.33) — more elongated, triangular plasmas sustain more
-            current and confine better, at the cost of needing active vertical-position control
-            (elongated plasmas are vertically unstable); <strong>Spherical tokamak</strong> is a
-            low-aspect-ratio (R₀/a≈1.6), highly elongated (κ=2.0) shape, the actual design regime
-            real spherical tokamaks (NSTX, MAST) use. <strong>Custom</strong> takes any r(θ) polar
-            equation. Shape is independent of the real-unit <strong>Operating point</strong> above
-            — it only sets geometry, which l<sub>i</sub>, β<sub>N</sub>, and q<sub>95</sub> all
-            depend on.
+            has no elongation or triangularity (κ=1, δ=0); <strong>ITER-like</strong> uses
+            illustrative ITER-scale values (κ=1.7, δ=0.33) — more elongated, triangular plasmas
+            sustain more current and confine better, at the cost of needing active
+            vertical-position control (elongated plasmas are vertically unstable);
+            <strong>Spherical tokamak</strong> is a low-aspect-ratio (R₀/a≈1.6), highly elongated
+            (κ=2.0) shape, the actual design regime real spherical tokamaks (NSTX, MAST) use.
+            <strong>Custom</strong> takes any r(θ) polar equation. Shape is independent of the
+            real-unit <strong>Operating point</strong> above — it only sets geometry, which
+            l<sub>i</sub>, β<sub>N</sub>, and q<sub>95</sub> all depend on.
+          </p>
+          <p class="reactor-caption">
+            On <strong>ITER-like</strong>, a "Show real ITER shape" checkbox appears above: a
+            dashed reference line traced from the actual ITER baseline-scenario magnetic
+            equilibrium (Baseline2008, l<sub>i</sub>=0.70) that
+            <a href="https://github.com/iterorganization/SOLPS-ITER" target="_blank" rel="noopener">SOLPS-ITER</a>'s
+            own mesh-generation tutorial uses for its ITER edge/divertor case — not solved by
+            this app, digitized from SOLPS-ITER's public example data
+            (<code>tools/export_iter_equilibrium.py</code>) and cross-checked against ITER's
+            published major/minor radius and toroidal field
+            (<code>tools/validate_iter_equilibrium.mjs</code>). The real last-closed-flux-surface
+            comes out to κ≈1.84 with an asymmetric δ<sub>upper</sub>≈0.38 /
+            δ<sub>lower</sub>≈0.52 (higher near the X-point) — the smooth, symmetric-δ Miller
+            curve above is a real simplification of that shape, not a mismeasurement of it; the
+            overlay makes the gap visible instead of leaving it merely stated. This is a shape
+            reference only — it is not fed into the live fixed-boundary solve: at a real
+            X-point the poloidal field itself vanishes, which a simple fixed-boundary solve
+            (unlike the free-boundary codes real tokamaks use) isn't set up to impose as a
+            boundary condition, so the solver keeps using the smooth Miller curve.
           </p>
         </div>
       </details>

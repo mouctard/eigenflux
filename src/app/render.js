@@ -144,6 +144,26 @@ export function renderEquilibrium(ctx, canvas, mesh, psi, pressureField, psiAxis
   ctx.beginPath();
   ctx.arc(ax, ay, 3, 0, 2 * Math.PI);
   ctx.fill();
+
+  // Real-ITER-shape reference overlay (see src/geom/iterEquilibrium.js): the actual
+  // digitized last-closed-flux-surface from SOLPS-ITER's own baseline-scenario equilibrium,
+  // rescaled into this solve's arbitrary units, drawn dashed so it reads as a reference
+  // line rather than part of the solved boundary it's being compared against.
+  if (opts.realShapeOverlay && opts.realShapeOverlay.length > 1) {
+    ctx.save();
+    ctx.strokeStyle = palette.axisMarker;
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([5, 4]);
+    ctx.beginPath();
+    opts.realShapeOverlay.forEach((pt, k) => {
+      const [x, y] = toPx(pt);
+      if (k === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    });
+    ctx.closePath();
+    ctx.stroke();
+    ctx.restore();
+  }
 }
 
 function hexToRgb(hex) {

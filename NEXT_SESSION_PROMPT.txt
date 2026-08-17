@@ -1,0 +1,60 @@
+I'm continuing work on eigenflux, a fusion-physics site at ~/Documents/eigenflux (git
+repo, pushed to github.com/mouctard/eigenflux, deployed at
+https://mouctard.github.io/eigenflux/). Read through the codebase before doing anything
+else, especially the newest page's own files and its "How this works" panel.
+
+Current state (three pages now):
+- index.html: live Grad-Shafranov equilibrium solver for tokamaks (FEM, Web Worker), shape
+  presets including a "Show real ITER shape" overlay sourced from real SOLPS-ITER tutorial
+  data, steady-state profiles, live D-T/D-D/D-3He fuel burn simulation.
+- stellarator.html: 3D viewer of real precomputed DESC-solved equilibria (W7-X, HSX, NCSX).
+- braginskii.html (NEW, built last session, UNTESTED IN A BROWSER): a real, time-dependent
+  2D two-fluid Braginskii edge-plasma solver -- density continuity + separate ion/electron
+  energy equations, implicit backward-Euler FEM (reusing src/math/'s sparse CSR + PCG
+  solver), on a mesh whose outer wall is real digitized ITER divertor/inboard geometry
+  (from SOLPS-ITER's own tutorial data) plus an illustrative outboard closing arc. Parallel
+  closures (kappa_par, viscosity, Q_ei) are the real NRL Plasma Formulary formulas,
+  verified against the formulary's own PDF text. Sheath boundary conditions and default
+  transport coefficients (D_perp=0.4, chi_perp=1.6 m^2/s, delta_i1=2.5) come directly from
+  W. Dekeyser et al., "Plasma edge simulations including realistic wall geometry with
+  SOLPS-ITER," Nuclear Materials and Energy 27 (2021) 100999 -- that paper's own real AUG
+  16151 run values, not generic placeholders. See braginskii.html's "How this works" panel
+  for the full real-vs-simplified breakdown (parallel momentum, drifts, and the
+  self-consistent potential equation are honestly not yet solved -- matches that reference
+  paper's own AUG demo run, which also skips the potential equation).
+
+Why it's untested live: it was built in a dev sandbox with no JS runtime at all (no node,
+no browser). Correctness was instead checked by an independent from-scratch Python re-port
+of the whole pipeline (tools/verify_pipeline.py, committed, run with
+`python3 tools/verify_pipeline.py` -- it currently passes) plus tools/validate_iter_wall.mjs,
+tools/validate_braginskii_closures.mjs, and tools/validate_braginskii_1d.mjs (all real Node
+scripts that import the actual src/braginskii/* modules -- run these with `node ...` since
+you'll have a real environment). The Python cross-check already caught and fixed one real
+bug (an eV/Joules units mismatch that silently made sheath heat losses ~1e19x too weak --
+see src/braginskii/sheath.js's comment on ionHeatRobin for the story), so there's real
+reason to expect the JS is right, but it has never actually run.
+
+Your task: use your Chrome browser tools to serve the repo (`python3 -m http.server 8000`
+or similar) and open braginskii.html for real. Specifically:
+1. Check the browser console for errors on load (mesh build + initial fetch of
+   data/iter_equilibrium.json, which is ~90KB and must load correctly).
+2. Confirm the canvas renders something sane: a wall shape with a real-looking divertor
+   structure on one side (the digitized ITER arc) blending into a smoother illustrative
+   outboard curve, not a garbled or self-intersecting mess.
+3. Click Play. Watch the status line and the rendered field (switch between the Density n /
+   T_i / T_e buttons) over ~30-60 seconds. Expect, based on the Python verification: wall
+   density visibly dropping below the core value over time (Bohm sheath sink), T_i cooling
+   noticeably faster than T_e at the wall (real kappa_par_e >> kappa_par_i), everything
+   staying finite and positive -- no NaN, no flatline, no blowup.
+4. Try Step (single manual batch) and Reset (full re-init). Try adjusting the core n/T,
+   D_perp/chi_perp, and delta_i1/gamma_e inputs and confirm the worker picks up the change
+   (via a "setParams" message) without erroring.
+5. Toggle "Show mesh" and sanity-check the mesh itself looks like a reasonable structured
+   O-grid, not degenerate.
+
+If anything looks wrong (blowup, flatline, garbled wall shape, console errors), dig into
+it rather than papering over it -- this is real, cited physics, not a toy, so a wrong
+result matters. If Chrome tools aren't registered as callable when you start, tell the
+user immediately rather than falling back to static analysis silently. Once it's confirmed
+working, update README.md's Status section (currently says "not yet exercised in an actual
+browser") to reflect that it's been verified live.

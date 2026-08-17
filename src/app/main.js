@@ -11,6 +11,7 @@ import { sawtoothEnvelope } from "../fusion/sawtooth.js";
 import { elmFrequencyHz, elmEnvelope } from "../fusion/elm.js";
 import { compileExpr } from "../math/exprParser.js";
 import { renderEquilibrium } from "./render.js";
+import { loadIterLcfsShape, iterLcfsShapeInPresetUnits } from "../geom/iterEquilibrium.js";
 import { renderShotChart } from "./shotChart.js";
 import { createTokamakViewer } from "./tokamak3d.js";
 import { buildPresetButtons, setActive, wireDropdown, wireKeyboardShortcuts, buildFuelGauges } from "./ui.js";
@@ -64,6 +65,9 @@ const viewer3d = createTokamakViewer(document.getElementById("viewer3d"));
 
 paintLegendBar(document.getElementById("pressure-legend"));
 const meshToggle = document.getElementById("mesh-toggle");
+const iterShapeToggleLabel = document.getElementById("iter-shape-toggle-label");
+const iterShapeToggle = document.getElementById("iter-shape-toggle");
+let iterLcfsOverlay = null; // populated lazily on first use of the real-ITER-shape overlay
 
 const worker = new Worker(new URL("../worker/solver.worker.js", import.meta.url), { type: "module" });
 
@@ -128,6 +132,7 @@ const shapeButtons = buildPresetButtons(
     setActive(shapeButtons, key);
     customShapeToggle.classList.remove("active");
     customShapePanel.hidden = true;
+    updateIterShapeToggleVisibility();
     updateHash();
     solve();
   },
@@ -235,6 +240,7 @@ function applyCustomShape() {
   state.customExpr = expr;
   setActive(shapeButtons, null);
   customShapeToggle.classList.add("active");
+  updateIterShapeToggleVisibility();
   updateHash();
   solve();
 }
@@ -314,6 +320,31 @@ try {
 
 meshToggle.addEventListener("change", () => {
   state.showMesh = meshToggle.checked;
+  redraw();
+});
+
+// The real-ITER-shape overlay only means anything against the "ITER-like" preset (it's
+// rescaled to that preset's R0/a -- see src/geom/iterEquilibrium.js), so the toggle only
+// shows up when that shape is selected, same as the custom-shape panel only shows for
+// "custom".
+function updateIterShapeToggleVisibility() {
+  iterShapeToggleLabel.hidden = state.shapeKey !== "iterLike";
+}
+
+iterShapeToggle.addEventListener("change", () => {
+  state.showIterShape = iterShapeToggle.checked;
+  if (state.showIterShape && !iterLcfsOverlay) {
+    loadIterLcfsShape()
+      .then((data) => {
+        iterLcfsOverlay = data;
+        redraw();
+      })
+      .catch((e) => {
+        console.error("Failed to load real ITER equilibrium overlay:", e);
+        iterShapeToggle.checked = false;
+        state.showIterShape = false;
+      });
+  }
   redraw();
 });
 
@@ -854,11 +885,17 @@ function redraw() {
   if (!lastResult) return;
   const mesh = { nodes: lastResult.nodes, triangles: lastResult.triangles, boundaryNodes: lastResult.boundaryNodes };
   const pressureField = buildPressureProfile(PROFILE_PRESETS[lastResult.profileKey]);
+  let realShapeOverlay = null;
+  if (state.showIterShape && lastResult.shapeKey === "iterLike" && iterLcfsOverlay) {
+    const preset = SHAPE_PRESETS.iterLike;
+    realShapeOverlay = iterLcfsShapeInPresetUnits(iterLcfsOverlay.shape, preset.R0, preset.a);
+  }
   renderEquilibrium(ctx, canvas, mesh, lastResult.psi, pressureField, lastResult.psiAxis, {
     showMesh: state.showMesh,
     glow: state.glow || { powerLevel: 0, throb: 1 },
     fuelFrac: state.fuelFrac == null ? 1 : state.fuelFrac,
     ignitionFrac: state.ignitionFrac == null ? 0 : state.ignitionFrac,
+    realShapeOverlay,
   });
 }
 
@@ -874,5 +911,6 @@ function solve() {
 }
 
 resizeCanvas();
+updateIterShapeToggleVisibility();
 updateHash();
 solve();
